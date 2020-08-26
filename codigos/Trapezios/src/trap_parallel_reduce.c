@@ -5,7 +5,7 @@
 #include <mpi.h>     // For MPI functions, etc
 
 double get_double(double i){
-    return i*i + i;
+    return 3*i*i*i + 4*i*i - 7*i + 8;
 }
 
 double calculate_trap(double a, double b, int n, double h, double (*func_ptr)(double i)) {  

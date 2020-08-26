@@ -4,12 +4,10 @@
 #include <stdlib.h>  // for strtol
 
 double get_double(double i){
-    return i*i + i;
+    return 3*i*i*i + 4*i*i - 7*i + 8;
 }
 
-double calculate_trap(double a, double b, double n, double (*func_ptr)(double i)) {
-    double h = (b - a) / n;  
-    printf("O h utilizado foi de: %lf\n", h);
+double calculate_trap(double a, double b, int n, double h, double (*func_ptr)(double i)) {  
     double area_total = ((*func_ptr)(a) + (*func_ptr)(b)) / 2;
     
     for (int i = 1; i < n; ++i) {
@@ -42,6 +40,16 @@ int main( int argc, char **argv ) {
 
     double (*func_ptr)(double i);
     func_ptr = get_double;
-    printf("Valor Calculado: %lf\n",calculate_trap(convert_str_double(argv[1]), convert_str_double(argv[2]), convert_str_double(argv[3]), func_ptr));
+
+    double a = convert_str_double(argv[1]);
+    double b = convert_str_double(argv[2]); 
+    double n = convert_str_double(argv[3]);
+    double h = (b - a) / n;
+
+    double local_integral = calculate_trap(a, b, n, h, func_ptr);
+
+    printf("O h utilizado foi de: %lf\n", h);
+    printf("Valor Calculado: %lf\n", local_integral);
+
     return 0;
 }  /* main */

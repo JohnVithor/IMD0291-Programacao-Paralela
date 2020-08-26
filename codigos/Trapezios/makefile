@@ -49,6 +49,8 @@ clean: dir
 	$(RM) $(BIN_PATH)/*.bin
 	$(RM) $(OBJ_PATH)/*.o
 
+run_all: run_serial run_parallel
+
 run_serial:
 	time ./bin/trap_serial.bin $(args)
 

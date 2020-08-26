@@ -5,7 +5,7 @@
 #include <mpi.h>     // For MPI functions, etc
 
 double get_double(double i){
-    return i*i + i;
+    return 3*i*i*i + 4*i*i - 7*i + 8;
 }
 
 double calculate_trap(double a, double b, int n, double h, double (*func_ptr)(double i)) {  
@@ -62,11 +62,9 @@ int main( int argc, char **argv ) {
     if(my_rank != 0) {
         MPI_Send(&local_integral, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
     } else {
-        printf("Proc %d of %d > Calculei: resultado=%lf\n", my_rank+1, comm_sz, local_integral);
         double total_integral = local_integral;
         for (int proc = 1; proc < comm_sz; ++proc) {
             MPI_Recv(&local_integral, 1, MPI_DOUBLE, proc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            printf("Proc %d of %d > enviou: resultado=%lf\n", proc+1, comm_sz, local_integral);
             total_integral += local_integral;
         }
         printf("O h utilizado foi de: %lf\n", h);
