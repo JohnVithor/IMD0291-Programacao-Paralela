@@ -1,19 +1,13 @@
 #include <stdio.h>
 #include <errno.h>  // for errno
+#include <math.h>
 #include <limits.h> // for INT_MAX
 #include <stdlib.h> // for strtol
 
-double calculate_pi(long number_of_terms){
-    double pi = 0;
-    double divisor = 1;
-    for (long i = 1; i <= number_of_terms; ++i) {
-        if (i % 2 != 0) {
-            pi += 4 / divisor;
-        }
-        else {
-            pi -= 4 / divisor;
-        }
-        divisor += 2;
+double BaileyBorweinPlouffe(long initial_k, long final_k){
+    double pi = 0.0;
+    for (long n = initial_k; n < final_k; ++n) {
+        pi += (1.0 / pow(16,n)) * ((4.0 / (8.0 * n + 1.0)) - (2.0 / (8.0 * n + 4.0)) - (1.0 / (8.0 * n + 5.0)) - (1.0 / (8.0 * n + 6.0)));
     }
     return pi;
 }
@@ -41,9 +35,9 @@ int main(int argc, char **argv){
 
     double number_of_terms = convert_str_long(argv[1]);
 
-    double pi = calculate_pi(number_of_terms);
+    double pi = BaileyBorweinPlouffe(0, number_of_terms);
 
-    printf("Valor Calculado de PI foi: %lf\n", pi);
+    printf("Valor Calculado de PI foi: %.11lf\n", pi);
 
     return 0;
 } /* main */

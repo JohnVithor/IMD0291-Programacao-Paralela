@@ -1,5 +1,4 @@
-PROG_S1 = pi_serial1
-PROG_S2 = pi_serial2
+PROG_S1 = pi_serial
 PROG_P = pi_parallel
 
 CC = gcc
@@ -18,25 +17,19 @@ OBJS_P = $(OBJ_PATH)/$(PROG_P).o
 
 RM = rm -v
 
-all: dir $(PROG_S1).bin $(PROG_S2).bin 
+all: dir $(PROG_S1).bin 
 
 $(PROG_S1).bin : $(OBJS_S1)
-	$(CC) -o $(BIN_PATH)/$(PROG_S1).bin $(OBJS_S1)
-
-$(PROG_S2).bin : $(OBJS_S2)
-	$(CC) -o $(BIN_PATH)/$(PROG_S2).bin $(OBJS_S2)
+	$(CC) -o $(BIN_PATH)/$(PROG_S1).bin $(OBJS_S1) -lm
 
 $(PROG_P).bin : $(OBJS_P)
-	$(MPI) -o $(BIN_PATH)/$(PROG_P).bin $(OBJS_P)
+	$(MPI) -o $(BIN_PATH)/$(PROG_P).bin $(OBJS_P) -lm
 
 $(OBJS_S1): $(SRC_PATH)/$(PROG_S1).c
-	$(CC) -c $(CFLAGS) -o $@  $<
-
-$(OBJS_S2): $(SRC_PATH)/$(PROG_S2).c
-	$(CC) -c $(CFLAGS) -o $@  $<
+	$(CC) -c $(CFLAGS) -o $@  $< -lm
 
 $(OBJS_P): $(SRC_PATH)/$(PROG_P).c
-	$(MPI) -c $(MPIFLAGS) -o $@ $<
+	$(MPI) -c $(MPIFLAGS) -o $@ $< -lm
 
 dir:
 	mkdir -p bin build
@@ -48,9 +41,8 @@ clean: dir
 run_all: run_serial run_parallel
 
 run_serial:
-	time ./bin/$(PROG_S1).bin 1 $(args)
-	time ./bin/$(PROG_S2).bin $(args)
-
+	time ./bin/$(PROG_S1).bin $(args)
+	
 run_parallel:
 	time mpiexec -n 6 ./bin/$(PROG_P).bin $(args)
 
