@@ -17,7 +17,7 @@ OBJS_P = $(OBJ_PATH)/$(PROG_P).o
 
 RM = rm -v
 
-all: dir $(PROG_S1).bin 
+all: dir $(PROG_S1).bin $(PROG_P).bin  
 
 $(PROG_S1).bin : $(OBJS_S1)
 	$(CC) -o $(BIN_PATH)/$(PROG_S1).bin $(OBJS_S1) -lm

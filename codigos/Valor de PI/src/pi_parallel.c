@@ -3,17 +3,12 @@
 #include <limits.h>  // for INT_MAX
 #include <stdlib.h>  // for strtol
 #include <mpi.h>     // For MPI functions, etc
+#include <math.h>
 
-double calculate_pi(long initial_term, long final_term, double divisor){
-    double pi = 0;
-    for (long i = initial_term; i <= final_term; ++i) {
-        if (i % 2 != 0) {
-            pi += 4 / divisor;
-        }
-        else {
-            pi -= 4 / divisor;
-        }
-        divisor += 2;
+double BaileyBorweinPlouffe(long initial_k, long final_k){
+    double pi = 0.0;
+    for (long n = initial_k; n < final_k; ++n) {
+        pi += (1.0 / pow(16,n)) * ((4.0 / (8.0 * n + 1.0)) - (2.0 / (8.0 * n + 4.0)) - (1.0 / (8.0 * n + 5.0)) - (1.0 / (8.0 * n + 6.0)));
     }
     return pi;
 }
@@ -49,26 +44,20 @@ int main( int argc, char **argv ) {
     long qtd_terms_per_core = number_of_terms / comm_sz;
     long local_initial_term = my_rank * qtd_terms_per_core;
     long local_final_term = (my_rank+1) * qtd_terms_per_core;
-    long local_divisor = 1 + my_rank*2;
 
-
-
-    double local_pi = calculate_pi(local_initial_term, local_final_term, local_divisor);
-    //printf("Proc %d of %d > Eu calculei: a=%lf, b=%lf, n=%lf, resultado=%lf\n", my_rank+1, comm_sz, local_a, local_b, local_n, local_integral);
+    double local_pi = BaileyBorweinPlouffe(local_initial_term, local_final_term);
 
     if(my_rank != 0) {
-        MPI_Send(&local_integral, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+        MPI_Send(&local_pi, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
     } else {
-        double total_integral = local_integral;
+        double total_pi = local_pi;
         for (int proc = 1; proc < comm_sz; ++proc) {
-            MPI_Recv(&local_integral, 1, MPI_DOUBLE, proc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            total_integral += local_integral;
+            MPI_Recv(&local_pi, 1, MPI_DOUBLE, proc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            total_pi += local_pi;
         }
-        printf("O h utilizado foi de: %lf\n", h);
-        printf("Valor Calculado: %lf\n", total_integral);
+        printf("Valor Calculado de PI foi de: %.100lf\n", total_pi);
     }
     MPI_Finalize();
 
-    // printf("Valor Calculado: %lf\n",);
     return 0;
 }  /* main */

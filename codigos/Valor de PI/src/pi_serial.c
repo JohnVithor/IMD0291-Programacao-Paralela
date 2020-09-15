@@ -37,7 +37,7 @@ int main(int argc, char **argv){
 
     double pi = BaileyBorweinPlouffe(0, number_of_terms);
 
-    printf("Valor Calculado de PI foi: %.11lf\n", pi);
+    printf("Valor Calculado de PI foi: %.100lf\n", pi);
 
     return 0;
 } /* main */
