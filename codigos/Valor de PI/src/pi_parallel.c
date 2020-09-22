@@ -97,7 +97,6 @@ int main( int argc, char **argv ) {
 
         printf("{\"PI\": %.50lf, \"time\": %.10lf}", initial_pi, mean_time);
 
-
     }
     MPI_Finalize();
 
