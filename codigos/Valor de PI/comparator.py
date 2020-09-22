@@ -23,11 +23,13 @@ for counter in args["casos"]:
   serial_proc = Popen([programa_serial, seed, counter], stdin=PIPE, stdout=PIPE, stderr=PIPE)
   output, err = serial_proc.communicate()
   serial_results[counter] = json.loads(output.decode("utf-8"))
+  # print("serial", output.decode("utf-8"))
   parallel_results[counter] = {}
   for procs_threads in args["procs_threads"]:
     parallel_proc = Popen(["mpiexec", "--use-hwthread-cpus", "-n", procs_threads, programa_paralelo, seed, counter], stdin=PIPE, stdout=PIPE, stderr=PIPE)
     output, err = parallel_proc.communicate()
     parallel_results[counter][procs_threads] = json.loads(output.decode("utf-8"))
+    # print("parallel", output.decode("utf-8"))
 
 def get_metrics(counter, procs_threads):
   serial_results[counter]["time"]
