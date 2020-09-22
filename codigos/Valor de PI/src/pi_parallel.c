@@ -95,8 +95,9 @@ int main( int argc, char **argv ) {
 
         mean_time = mean_time/10.0;
 
-        printf("Valor Calculado de PI foi: %.50lf\n", initial_pi);
-        printf("Tempo médio foi: %.10lf segundos\n", mean_time);
+        printf("{\"PI\": %.50lf, \"time\": %.10lf}", initial_pi, mean_time);
+
+
     }
     MPI_Finalize();
 
