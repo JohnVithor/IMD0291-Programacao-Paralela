@@ -3,9 +3,11 @@
 #include <limits.h>  // for INT_MAX
 #include <stdlib.h>  // for strtol
 #include <mpi.h>     // For MPI functions, etc
+#include <math.h>
+#include <time.h>
 
-double get_double(double i){
-    return 3*i*i*i + 4*i*i - 7*i + 8;
+double function(double i){
+    return sin(i) + sin(2*i);
 }
 
 double calculate_trap(double a, double b, int n, double h, double (*func_ptr)(double i)) {  
@@ -42,7 +44,7 @@ int main( int argc, char **argv ) {
     int my_rank, comm_sz;
 
     double (*func_ptr)(double i);
-    func_ptr = get_double;
+    func_ptr = function;
 
     double a = convert_str_double(argv[1]);
     double b = convert_str_double(argv[2]); 
@@ -52,6 +54,8 @@ int main( int argc, char **argv ) {
     MPI_Init(NULL, NULL);
     MPI_Comm_size( MPI_COMM_WORLD , &comm_sz);
     MPI_Comm_rank( MPI_COMM_WORLD , &my_rank);
+
+    clock_t t = clock(); 
 
     double local_n = n / comm_sz;
     double local_a = a + my_rank * local_n * h;
@@ -67,8 +71,9 @@ int main( int argc, char **argv ) {
             MPI_Recv(&local_integral, 1, MPI_DOUBLE, proc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             total_integral += local_integral;
         }
-        printf("O h utilizado foi de: %lf\n", h);
-        printf("Valor Calculado: %lf\n", total_integral);
+        t = clock() - t; 
+
+        printf("{\"Integral\": %.20lf, \"time\": %.10lf}", total_integral, ((double)t) / CLOCKS_PER_SEC);
     }
     MPI_Finalize();
 

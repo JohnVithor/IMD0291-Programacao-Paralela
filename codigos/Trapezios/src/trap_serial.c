@@ -2,9 +2,11 @@
 #include <errno.h>   // for errno
 #include <limits.h>  // for INT_MAX
 #include <stdlib.h>  // for strtol
+#include <time.h>
+#include <math.h>
 
-double get_double(double i){
-    return 3*i*i*i + 4*i*i - 7*i + 8;
+double function(double i){
+    return sin(i) + sin(2*i);
 }
 
 double calculate_trap(double a, double b, int n, double h, double (*func_ptr)(double i)) {  
@@ -39,17 +41,21 @@ int main( int argc, char **argv ) {
     }
 
     double (*func_ptr)(double i);
-    func_ptr = get_double;
+    func_ptr = function;
 
     double a = convert_str_double(argv[1]);
     double b = convert_str_double(argv[2]); 
     double n = convert_str_double(argv[3]);
     double h = (b - a) / n;
+    
+    clock_t t = clock(); 
 
     double local_integral = calculate_trap(a, b, n, h, func_ptr);
+    
+    t = clock() - t; 
 
-    printf("O h utilizado foi de: %lf\n", h);
-    printf("Valor Calculado: %lf\n", local_integral);
+    printf("{\"Integral\": %.20lf, \"time\": %.10lf}", local_integral, ((double)t) / CLOCKS_PER_SEC);
+
 
     return 0;
 }  /* main */

@@ -45,32 +45,18 @@ int main(int argc, char **argv){
 
     long seed = convert_str_long(argv[1]);
     long counter = convert_str_long(argv[2]);
-    double times[10]; 
-    double pis[10]; 
+    double pi = 0; 
+    long in = 0;
+    long out = 0;
 
-    for (long i = 0; i < 10; ++i) {
-        clock_t t = clock(); 
-        long in = 0;
-        long out = 0;
-        count_in_out(seed, counter, &in, &out);
-        pis[i] = calculate_pi(in, out);
-        t = clock() - t; 
-        times[i] = ((double)t) / CLOCKS_PER_SEC;
-    }
+    clock_t t = clock();
     
-    double initial_pi = pis[0];
-    double mean_time = times[0];
+    count_in_out(seed, counter, &in, &out);
+    pi = calculate_pi(in, out);
 
-    for (int i = 1; i < 10; ++i) {
-        if (initial_pi != pis[i]){
-            printf("O valor calculado para PI na repetição %d foi diferente das anteriores: %.20lf", i, pis[i]);
-        }
-        mean_time += times[i];
-    }
+    t = clock() - t; 
 
-    mean_time = mean_time/10.0;
-
-    printf("{\"PI\": %.50lf, \"time\": %.10lf}", initial_pi, mean_time);
+    printf("{\"PI\": %.50lf, \"time\": %.10lf}", pi, ((double)t) / CLOCKS_PER_SEC);
 
     return 0;
 } /* main */

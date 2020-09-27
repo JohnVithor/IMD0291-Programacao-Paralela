@@ -56,29 +56,22 @@ int main( int argc, char **argv ) {
 
     double pi = 0;
 
-    long local_data[2] = {0,0};
+    long local_in_out[2] = {0,0};
+    long total_in_out[2] = {0,0};
 
     clock_t t = clock(); 
 
-    count_in_out(seed, local_counter, local_data);
+    count_in_out(seed, local_counter, local_in_out);
 
-    if(my_rank != 0) {
-        MPI_Send(local_data, 2, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-    } else {
-        long total_in = local_data[0];
-        long total_out = local_data[1];
-        for (int proc = 1; proc < comm_sz; ++proc) {
-            MPI_Recv(&local_data, 2, MPI_DOUBLE, proc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            total_in += local_data[0];
-            total_out += local_data[1];
-        }
-        pi = calculate_pi(total_in, total_out);
-        
-        t = clock() - t; 
-        
+    MPI_Reduce(local_in_out, total_in_out, 2, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    pi = calculate_pi(total_in_out[0], total_in_out[1]);
+
+    t = clock() - t; 
+
+    if(my_rank == 0) {
         printf("{\"PI\": %.50lf, \"time\": %.10lf}", pi, ((double)t) / CLOCKS_PER_SEC);
     }
-    
     MPI_Finalize();
 
     return 0;
