@@ -5,21 +5,23 @@
 #include <stdlib.h> // for strtol
 #include <time.h>
 
-void count_in_out(long seed, long counter, long* in, long* out){
+int count_insides(long seed, long counter){
     srand(seed);
-    *in = 0;
-    *out = 0;
-    double d, x, y;
-    while (--counter > 0) {
+    double x, y;
+    long inside = 0;
+    while (counter > 0) {
         x = (double) rand() / (double)INT_MAX;
         y = (double) rand() / (double)INT_MAX;
-        d = x*x + y*y;
-        (d <= 1.0) ? ++*in : ++*out;
+        if (x*x + y*y <= 1.0){
+            ++inside;
+        }
+        --counter;
     }
+    return inside;
 }
 
-double calculate_pi(long in, long out) {
-    return 4.0 * (float) in / (float) (in + out);
+double calculate_pi(long in, long counter) {
+    return 4.0 * (float) in / (float) counter;
 }
 
 long convert_str_long(char *str){
@@ -45,14 +47,11 @@ int main(int argc, char **argv){
 
     long seed = convert_str_long(argv[1]);
     long counter = convert_str_long(argv[2]);
-    double pi = 0; 
-    long in = 0;
-    long out = 0;
 
     clock_t t = clock();
     
-    count_in_out(seed, counter, &in, &out);
-    pi = calculate_pi(in, out);
+    long in = count_insides(seed, counter);
+    double pi = calculate_pi(in, counter);
 
     t = clock() - t; 
 

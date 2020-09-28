@@ -6,21 +6,23 @@
 #include <time.h>
 #include <mpi.h>    // For MPI functions, etc
 
-void count_in_out(long seed, long counter, long* data){
+int count_insides(long seed, long counter){
     srand(seed);
-    data[0] = 0;
-    data[1] = 0;
-    double d, x, y;
-    while (--counter > 0) {
+    double x, y;
+    long inside = 0;
+    while (counter > 0) {
         x = (double) rand() / (double)INT_MAX;
         y = (double) rand() / (double)INT_MAX;
-        d = x*x + y*y;
-        (d <= 1.0) ? ++(data[0]) : ++(data[1]);
+        if (x*x + y*y <= 1.0){
+            ++inside;
+        }
+        --counter;
     }
+    return inside;
 }
 
-double calculate_pi(long in, long out) {
-    return 4.0 * (float) in / (float) (in + out);
+double calculate_pi(long in, long counter) {
+    return 4.0 * (float) in / (float) counter;
 }
 
 long convert_str_long(char *str){
@@ -54,25 +56,19 @@ int main( int argc, char **argv ) {
 
     long local_counter = counter/comm_sz;
 
-    double pi = 0;
-
-    long local_data[2] = {0,0};
-
     clock_t t = clock(); 
 
-    count_in_out(seed, local_counter, local_data);
+    long local_insides = count_insides(seed, local_counter);
 
     if(my_rank != 0) {
-        MPI_Send(local_data, 2, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+        MPI_Send(&local_insides, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
     } else {
-        long total_in = local_data[0];
-        long total_out = local_data[1];
+        long total_insides = local_insides;
         for (int proc = 1; proc < comm_sz; ++proc) {
-            MPI_Recv(&local_data, 2, MPI_DOUBLE, proc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            total_in += local_data[0];
-            total_out += local_data[1];
+            MPI_Recv(&local_insides, 1, MPI_DOUBLE, proc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            total_insides += local_insides;
         }
-        pi = calculate_pi(total_in, total_out);
+        double pi  = calculate_pi(total_insides, counter);
         
         t = clock() - t; 
         
