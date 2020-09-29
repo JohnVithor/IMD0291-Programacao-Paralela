@@ -3,6 +3,7 @@ import sys
 from subprocess import Popen, PIPE
 import io
 import json
+import itertools
 
 import matplotlib.pyplot as plt
 
@@ -12,7 +13,7 @@ if len(sys.argv) != 4:
   sys.exit(1)
 
 programa_serial = "./bin/trap_serial.bin"
-programa_paralelo = "./bin/trap_parallel.bin"
+programa_paralelo = "./bin/trap_parallel_reduce.bin"
 
 with open(sys.argv[1], "r") as f:
   args = json.load(f)
@@ -25,40 +26,42 @@ if(log_level < 0 or log_level > 3):
   print("0: Sem informação alguma\n1: Apenas a média de cada configuração usada é mostrada\n2: Todos os tempos obtidos são mostrados")
   sys.exit(1)
 
-seed = args["seed"]
+for arg_type in args["args"].keys():
+  print(arg_type)
+
 serial_results = {}
 parallel_results = {}
-for counter in args["casos"]:
-  serial_results[counter] = {"mean_time":0.0, "times":[]}
+for args_tuple in itertools.product(*args["args"].values()):
+  serial_results[str(args_tuple)] = {"mean_time":0.0, "times":[]}
   mean_time = 0.0
   if(log_level > 0):
-    print("Serial:\t\t", counter)
+    print("Serial:\t\t", 'args:', args_tuple)
   for i in range(repeats):
-    serial_proc = Popen([programa_serial, seed, counter], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    serial_proc = Popen([programa_serial, *args_tuple], stdin=PIPE, stdout=PIPE, stderr=PIPE)
     output, err = serial_proc.communicate()
-    serial_results[counter]["times"].append(json.loads(output.decode("utf-8")))
+    serial_results[str(args_tuple)]["times"].append(json.loads(output.decode("utf-8")))
     if(log_level > 1):
-      print(i, "\t","%.10f" % serial_results[counter]["times"][-1]["time"], "seconds")
-    mean_time += serial_results[counter]["times"][-1]["time"]
-  serial_results[counter]["mean_time"] = mean_time / repeats
+      print(i, "\t","%.10f" % serial_results[str(args_tuple)]["times"][-1]["time"], "seconds")
+    mean_time += serial_results[str(args_tuple)]["times"][-1]["time"]
+  serial_results[str(args_tuple)]["mean_time"] = mean_time / repeats
   if(log_level > 0):
-    print("mean:\t", "%.10f" % serial_results[counter]["mean_time"], "seconds")
-  parallel_results[counter] = {}
+    print("mean:\t", "%.10f" % serial_results[str(args_tuple)]["mean_time"], "seconds")
+  parallel_results[str(args_tuple)] = {}
   for procs_threads in args["procs_threads"]:
-    parallel_results[counter][procs_threads] = {"mean_time":0.0, "times":[]}
+    parallel_results[str(args_tuple)][procs_threads] = {"mean_time":0.0, "times":[]}
     mean_time = 0.0
     if(log_level > 0):
-      print("Parallel:\t", counter, procs_threads)
+      print("Parallel:\t", 'args:', args_tuple, "\tprocs", procs_threads)
     for i in range(repeats):
-      parallel_proc = Popen(["mpiexec", "-n", procs_threads, programa_paralelo, seed, counter], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+      parallel_proc = Popen(["mpiexec", "-n", procs_threads, programa_paralelo, *args_tuple], stdin=PIPE, stdout=PIPE, stderr=PIPE)
       output, err = parallel_proc.communicate()
-      parallel_results[counter][procs_threads]["times"].append(json.loads(output.decode("utf-8")))
+      parallel_results[str(args_tuple)][procs_threads]["times"].append(json.loads(output.decode("utf-8")))
       if(log_level > 1):
-        print(i, "\t", "%.10f" % parallel_results[counter][procs_threads]["times"][-1]["time"], "seconds")
-      mean_time += parallel_results[counter][procs_threads]["times"][-1]["time"]
-    parallel_results[counter][procs_threads]["mean_time"] = mean_time / repeats
+        print(i, "\t", "%.10f" % parallel_results[str(args_tuple)][procs_threads]["times"][-1]["time"], "seconds")
+      mean_time += parallel_results[str(args_tuple)][procs_threads]["times"][-1]["time"]
+    parallel_results[str(args_tuple)][procs_threads]["mean_time"] = mean_time / repeats
     if(log_level > 0):
-      print("mean:\t", "%.10f" % parallel_results[counter][procs_threads]["mean_time"], "seconds")
+      print("mean:\t", "%.10f" % parallel_results[str(args_tuple)][procs_threads]["mean_time"], "seconds")
 
 def get_metrics(counter, procs_threads):
   speedup = serial_results[counter]["mean_time"] / parallel_results[counter][procs_threads]["mean_time"]
