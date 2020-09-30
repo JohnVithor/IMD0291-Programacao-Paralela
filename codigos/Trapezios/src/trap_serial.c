@@ -5,14 +5,16 @@
 #include <time.h>
 #include <math.h>
 
-double function(double i){
-    return sin(i) + sin(2*i);
+#define M_PI 3.14159265358979323846
+
+double function(double x){
+    return 10 * ( (x * x) - (10 * cos(2 * M_PI * x)));
 }
 
-double calculate_trap(double a, double b, int n, double h, double (*func_ptr)(double i)) {  
+double calculate_trap(double a, double b, long n, double h, double (*func_ptr)(double i)) {  
     double area_total = ((*func_ptr)(a) + (*func_ptr)(b)) / 2;
     
-    for (int i = 1; i < n; ++i) {
+    for (long i = 1; i < n; ++i) {
         double x_i = a + i * h;
         area_total += (*func_ptr)(x_i);
     }
@@ -32,6 +34,19 @@ double convert_str_double(char* str) {
     return (double) conv;
 }
 
+long convert_str_long(char *str){
+    char *p;
+    errno = 0;
+    long conv = strtol(str, &p, 10);
+
+    if (errno != 0 || *p != '\0')
+    {
+        printf("%s não é um número!\n", str);
+        exit(-1);
+    }
+    return (long)conv;
+}
+
 int main( int argc, char **argv ) {
 
     if (argc != 4) {
@@ -45,7 +60,7 @@ int main( int argc, char **argv ) {
 
     double a = convert_str_double(argv[1]);
     double b = convert_str_double(argv[2]); 
-    double n = convert_str_double(argv[3]);
+    long n = convert_str_long(argv[3]);
     double h = (b - a) / n;
     
     clock_t t = clock(); 

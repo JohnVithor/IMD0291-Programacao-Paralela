@@ -6,8 +6,10 @@
 #include <math.h>
 #include <time.h>
 
-double function(double i){
-    return sin(i) + sin(2*i);
+#define M_PI 3.14159265358979323846
+
+double function(double x){
+    return 10 * ( (x * x) - (10 * cos(2 * M_PI * x)));
 }
 
 double calculate_trap(double a, double b, int n, double h, double (*func_ptr)(double i)) {  
