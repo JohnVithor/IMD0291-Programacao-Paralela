@@ -65,7 +65,7 @@ int main( int argc, char **argv ) {
 
     double local_integral = calculate_trap(local_a, local_b, local_n, h, func_ptr);
 
-    double total_integral = local_integral;
+    double total_integral = 0;
 
     MPI_Reduce(&local_integral, &total_integral, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
