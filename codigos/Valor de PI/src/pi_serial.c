@@ -5,7 +5,7 @@
 #include <stdlib.h> // for strtol
 #include <time.h>
 
-int count_insides(long seed, long counter){
+long count_insides(long seed, long counter){
     srand(seed);
     double x, y;
     long inside = 0;
@@ -21,7 +21,7 @@ int count_insides(long seed, long counter){
 }
 
 double calculate_pi(long in, long counter) {
-    return 4.0 * (float) in / (float) counter;
+    return 4.0 * (double) in / (double) counter;
 }
 
 long convert_str_long(char *str){

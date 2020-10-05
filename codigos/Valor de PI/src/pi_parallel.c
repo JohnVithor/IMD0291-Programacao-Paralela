@@ -6,7 +6,7 @@
 #include <time.h>
 #include <mpi.h>    // For MPI functions, etc
 
-int count_insides(long seed, long counter){
+long count_insides(long seed, long counter){
     srand(seed);
     double x, y;
     long inside = 0;
@@ -22,7 +22,7 @@ int count_insides(long seed, long counter){
 }
 
 double calculate_pi(long in, long counter) {
-    return 4.0 * (float) in / (float) counter;
+    return 4.0 * (double) in / (double) counter;
 }
 
 long convert_str_long(char *str){
@@ -61,11 +61,11 @@ int main( int argc, char **argv ) {
     long local_insides = count_insides(seed, local_counter);
 
     if(my_rank != 0) {
-        MPI_Send(&local_insides, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+        MPI_Send(&local_insides, 1, MPI_LONG, 0, 0, MPI_COMM_WORLD);
     } else {
         long total_insides = local_insides;
         for (int proc = 1; proc < comm_sz; ++proc) {
-            MPI_Recv(&local_insides, 1, MPI_DOUBLE, proc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(&local_insides, 1, MPI_LONG, proc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             total_insides += local_insides;
         }
         double pi  = calculate_pi(total_insides, counter);
