@@ -1,6 +1,6 @@
 #!/bin/sh
 
-python3 comparator.py args_teste.json 12 2 0
+python3 comparator.py args_teste.json 3 2 0
 
 mv serial_results.json serial_results1.json
 mv parallel_results.json parallel_results1.json
@@ -24,7 +24,7 @@ mv speedups.png speedups_b1.png
 
 
 
-python3 comparator.py args_teste2.json 12 2 1
+python3 comparator.py args_teste2.json 3 2 1
 
 mv serial_results.json serial_results2.json
 mv parallel_results.json parallel_results2.json

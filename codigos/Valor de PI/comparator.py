@@ -12,7 +12,7 @@ if len(sys.argv) != 5:
   sys.exit(1)
 
 programa_serial = "./bin/pi_serial.bin"
-programa_paralelo = "./bin/pi_parallel.bin"
+programa_paralelo = "./bin/pi_parallel_reduce.bin"
 
 with open(sys.argv[1], "r") as f:
   args = json.load(f)
