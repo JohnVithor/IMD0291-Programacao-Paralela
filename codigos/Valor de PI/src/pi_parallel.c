@@ -7,7 +7,6 @@
 #include <mpi.h>    // For MPI functions, etc
 
 long count_insides(long seed, long counter){
-    srand(seed);
     double x, y;
     long inside = 0;
     while (counter > 0) {
@@ -47,16 +46,17 @@ int main( int argc, char **argv ) {
     }
 
     int my_rank, comm_sz;
+    long seed = convert_str_long(argv[1]);
+    long counter = convert_str_long(argv[2]);
+    
     MPI_Init(NULL, NULL);
     MPI_Comm_size( MPI_COMM_WORLD , &comm_sz);
     MPI_Comm_rank( MPI_COMM_WORLD , &my_rank);
 
-    long seed = convert_str_long(argv[1]);
-    long counter = convert_str_long(argv[2]);
-
     long local_counter = counter/comm_sz;
+    srand(seed + my_rank);
 
-    clock_t t = clock(); 
+    double start = MPI_Wtime();
 
     long local_insides = count_insides(seed, local_counter);
 
@@ -70,9 +70,9 @@ int main( int argc, char **argv ) {
         }
         double pi  = calculate_pi(total_insides, counter);
         
-        t = clock() - t; 
-        
-        printf("{\"PI\": %.50lf, \"time\": %.10lf}", pi, ((double)t) / CLOCKS_PER_SEC);
+        double finish = MPI_Wtime();
+        double final_time = finish-start;
+        printf("{\"PI\": %.50lf, \"time\": %.10lf}", pi, final_time);
     }
     
     MPI_Finalize();

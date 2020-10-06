@@ -6,13 +6,12 @@
 #include <time.h>
 #include <mpi.h>    // For MPI functions, etc
 
-long count_insides(long seed, long counter){
-    srand(seed);
+long count_insides(unsigned int seed, long counter){
     double x, y;
     long inside = 0;
     while (counter > 0) {
-        x = (double) rand() / (double)INT_MAX;
-        y = (double) rand() / (double)INT_MAX;
+        x = rand_r(&seed) / (double)INT_MAX;
+        y = rand_r(&seed) / (double)INT_MAX;
         if (x*x + y*y <= 1.0){
             ++inside;
         }
@@ -47,7 +46,6 @@ int main( int argc, char **argv ) {
     }
 
     int my_rank, comm_sz;
-
     long seed = convert_str_long(argv[1]);
     long counter = convert_str_long(argv[2]);
 
@@ -57,18 +55,23 @@ int main( int argc, char **argv ) {
 
     long local_counter = counter/comm_sz;
 
-    clock_t t = clock(); 
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    double start = MPI_Wtime();
 
     long local_insides = count_insides(seed, local_counter);
     long total_insides = 0;
     MPI_Reduce(&local_insides, &total_insides, 1, MPI_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
-
     double pi = calculate_pi(total_insides, counter);
 
-    t = clock() - t; 
+    double finish = MPI_Wtime();
 
+    double local_time = finish-start;
+    double final_time = 0;
+
+    MPI_Reduce(&local_time, &final_time, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD); 
     if(my_rank == 0) {
-        printf("{\"PI\": %.50lf, \"time\": %.10lf}", pi, ((double)t) / CLOCKS_PER_SEC);
+        printf("{\"PI\": %.50lf, \"time\": %.10lf}", pi, final_time);
     }
     MPI_Finalize();
 

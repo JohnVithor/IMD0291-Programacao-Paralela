@@ -5,13 +5,12 @@
 #include <stdlib.h> // for strtol
 #include <time.h>
 
-long count_insides(long seed, long counter){
-    srand(seed);
+long count_insides(unsigned int seed, long counter){
     double x, y;
     long inside = 0;
     while (counter > 0) {
-        x = (double) rand() / (double)INT_MAX;
-        y = (double) rand() / (double)INT_MAX;
+        x = rand_r(&seed) / (double)INT_MAX;
+        y = rand_r(&seed) / (double)INT_MAX;
         if (x*x + y*y <= 1.0){
             ++inside;
         }
