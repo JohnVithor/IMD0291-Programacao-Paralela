@@ -1,4 +1,3 @@
-""" 1a.py """
 import sys
 from subprocess import Popen, PIPE
 import io
@@ -67,28 +66,11 @@ for args_tuple in itertools.product(*args["args"].values()):
     if(log_level > 0):
       print("mean:\t", "%.10f" % parallel_results[str(args_tuple)][procs_threads]["mean_time"], "seconds")
 
-def get_metrics(args_tuple, procs_threads):
-  speedup = serial_results[str(args_tuple)]["mean_time"] / parallel_results[str(args_tuple)][procs_threads]["mean_time"]
-  return {"speedup": speedup, "eficiencia" : speedup / int(procs_threads)}
-
-problem_proc = {}
-for args_tuple in itertools.product(*args["args"].values()):
-  problem_proc[str(args_tuple)] = {}
-  for procs_threads in args["procs_threads"]:
-    problem_proc[str(args_tuple)][procs_threads] = get_metrics(args_tuple, procs_threads)
-
-proc_problem = {}
-for procs_threads in args["procs_threads"]:
-  proc_problem[procs_threads] = {}
-  for args_tuple in itertools.product(*args["args"].values()):
-    proc_problem[procs_threads][str(args_tuple)] = get_metrics(args_tuple, procs_threads)
-
-
 with open("serial_results.json", "w") as f:
   f.write(json.dumps(serial_results))
 with open("parallel_results.json", "w") as f:
   f.write(json.dumps(parallel_results))
-with open("metrics.json", "w") as f:
-  f.write(json.dumps({"v1": problem_proc, "v2": proc_problem}))
 
 print("Resultados salvos!")
+
+

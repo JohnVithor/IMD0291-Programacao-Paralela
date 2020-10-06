@@ -2,67 +2,63 @@ import sys
 from subprocess import Popen, PIPE
 import io
 import json
-import numpy as np
-import matplotlib.pyplot as plt
 import itertools
 
-if len(sys.argv) != 3:
-  print("É necessario informar o caminho para os argumentos usados e os resultados encontrados")
+import matplotlib.pyplot as plt
+
+if len(sys.argv) != 4:
+  print("É necessario informar o caminho para os argumentos usados e os resultados encontrados tanto serial quanto paralelo")
   sys.exit(1)
 
 with open(sys.argv[1], "r") as f:
   args = json.load(f)
 
 with open(sys.argv[2], "r") as f:
-  results = json.load(f)
+  serial_results = json.load(f)
 
-problem_proc = results["v1"]
-proc_problem = results["v2"]
+with open(sys.argv[3], "r") as f:
+  parallel_results = json.load(f)
 
-problems = {}
+def get_metrics(args_tuple, procs_threads):
+  speedup = serial_results[str(args_tuple)]["mean_time"] / parallel_results[str(args_tuple)][procs_threads]["mean_time"]
+  return {"speedup": speedup, "eficiencia" : speedup / int(procs_threads)}
+
+def calculate_new_mean(times):
+  ts = [t["time"] for t in times]
+  total = sum(ts) - (min(ts) + max(ts))
+  return total / (len(ts) - 2)
+
+def get_metrics_2(args_tuple, procs_threads):
+  speedup = calculate_new_mean(serial_results[str(args_tuple)]["times"]) / calculate_new_mean(parallel_results[str(args_tuple)][procs_threads]["times"])
+  return {"speedup": speedup, "eficiencia" : speedup / int(procs_threads)}
+
+problem_proc = {}
 for args_tuple in itertools.product(*args["args"].values()):
-  problems[str(args_tuple)] = {}
-  problems[str(args_tuple)]["speedup"] = [d["speedup"] for d in list(problem_proc[str(args_tuple)].values())]
-  problems[str(args_tuple)]["cores"] = [float(value) for value in list(problem_proc[str(args_tuple)].keys())]
-  plt.plot(problems[str(args_tuple)]["cores"], problems[str(args_tuple)]["speedup"], label=str(args_tuple))
+  problem_proc[str(args_tuple)] = {}
+  for procs_threads in args["procs_threads"]:
+    problem_proc[str(args_tuple)][procs_threads] = get_metrics(args_tuple, procs_threads)
+
+proc_problem = {}
+for procs_threads in args["procs_threads"]:
+  proc_problem[procs_threads] = {}
+  for args_tuple in itertools.product(*args["args"].values()):
+    proc_problem[procs_threads][str(args_tuple)] = get_metrics(args_tuple, procs_threads)
+
+with open("metrics_a.json", "w") as f:
+  f.write(json.dumps({"v1": problem_proc, "v2": proc_problem}))
 
 
-plt.legend(loc='best')
-plt.xlabel(xlabel='cores')
-plt.ylabel(ylabel='speedup')
-plt.savefig("speedups.png")
-print("Gráfico dos Speedups salvo: speedups.png")
-
-
-plt.close()
-problems = {}
+problem_proc = {}
 for args_tuple in itertools.product(*args["args"].values()):
-  problems[str(args_tuple)] = {}
-  problems[str(args_tuple)]["eficiencia"] = [d["eficiencia"] for d in list(problem_proc[str(args_tuple)].values())]
-  problems[str(args_tuple)]["cores"] = [float(value) for value in list(problem_proc[str(args_tuple)].keys())]
-  plt.plot(problems[str(args_tuple)]["cores"], problems[str(args_tuple)]["eficiencia"], label=str(args_tuple))
-  
+  problem_proc[str(args_tuple)] = {}
+  for procs_threads in args["procs_threads"]:
+    problem_proc[str(args_tuple)][procs_threads] = get_metrics(args_tuple, procs_threads)
 
-plt.legend(loc='best')
-plt.xlabel(xlabel='cores')
-plt.ylabel(ylabel='eficiencia')
-plt.savefig("eficiencias_cores.png")
-print("Gráfico da Eficiência por core salvo: eficiencias_cores.png")
+proc_problem = {}
+for procs_threads in args["procs_threads"]:
+  proc_problem[procs_threads] = {}
+  for args_tuple in itertools.product(*args["args"].values()):
+    proc_problem[procs_threads][str(args_tuple)] = get_metrics(args_tuple, procs_threads)
 
-
-plt.close()
-problems = {}
-for cores in args["procs_threads"]:
-  problems[cores] = {}
-  problems[cores]["eficiencia"] = [d["eficiencia"] for d in list(proc_problem[cores].values())]
-  problems[cores]["tamanho_problema"] = [int(value.replace('(', '').replace(')', '').split(',')[1].replace(" ", "").replace("'", "")) for value in list(proc_problem[cores].keys())]
-  plt.plot(problems[cores]["tamanho_problema"], problems[cores]["eficiencia"], label=cores)
-  
-
-
-
-plt.legend(loc='best')
-plt.xlabel(xlabel='Tamanho do Problema')
-plt.ylabel(ylabel='eficiencia')
-plt.savefig("eficiencias_problem_size.png")
-print("Gráfico da Eficiência por tamanho de problema salvo: eficiencias_problem_size.png")
+with open("metrics_b.json", "w") as f:
+  f.write(json.dumps({"v1": problem_proc, "v2": proc_problem}))
