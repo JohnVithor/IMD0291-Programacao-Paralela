@@ -75,7 +75,9 @@ int main( int argc, char **argv ) {
     double local_a = a + my_rank * local_n * h;
     double local_b = local_a + local_n * h;
 
-    clock_t t = clock(); 
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    double start = MPI_Wtime();
 
     double local_integral = calculate_trap(local_a, local_b, local_n, h, func_ptr);
 
@@ -83,10 +85,15 @@ int main( int argc, char **argv ) {
 
     MPI_Reduce(&local_integral, &total_integral, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
-    t = clock() - t; 
+    double finish = MPI_Wtime();
+
+    double local_time = finish-start;
+    double final_time = 0;
+
+    MPI_Reduce(&local_time, &final_time, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD); 
 
     if(my_rank == 0) {
-        printf("{\"Integral\": %.20lf, \"time\": %.10lf}", total_integral, ((double)t) / CLOCKS_PER_SEC);
+        printf("{\"Integral\": %.20lf, \"time\": %.10lf}", total_integral, final_time);
     }
     MPI_Finalize();
 
