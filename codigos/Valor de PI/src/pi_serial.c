@@ -11,7 +11,7 @@ long count_insides(unsigned int seed, long counter){
     while (counter > 0) {
         x = rand_r(&seed) / (double)INT_MAX;
         y = rand_r(&seed) / (double)INT_MAX;
-        if (x*x + y*y <= 1.0){
+        if (sqrt(x*x + y*y <= 1.0)){
             ++inside;
         }
         --counter;

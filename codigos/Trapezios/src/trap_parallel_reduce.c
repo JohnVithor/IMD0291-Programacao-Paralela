@@ -35,6 +35,20 @@ double convert_str_double(char* str) {
     return (double) conv;
 }
 
+
+long convert_str_long(char *str){
+    char *p;
+    errno = 0;
+    long conv = strtol(str, &p, 10);
+
+    if (errno != 0 || *p != '\0')
+    {
+        printf("%s não é um número!\n", str);
+        exit(-1);
+    }
+    return (long)conv;
+}
+
 int main( int argc, char **argv ) {
 
     if (argc != 4) {
@@ -50,7 +64,7 @@ int main( int argc, char **argv ) {
 
     double a = convert_str_double(argv[1]);
     double b = convert_str_double(argv[2]); 
-    double n = convert_str_double(argv[3]);
+    long n = convert_str_long(argv[3]);
     double h = (b - a) / n;
 
     MPI_Init(NULL, NULL);
