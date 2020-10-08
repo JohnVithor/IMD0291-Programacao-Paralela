@@ -54,7 +54,7 @@ int main(int argc, char **argv){
 
     t = clock() - t; 
 
-    printf("{\"PI\": %.50lf, \"time\": %.10lf}", pi, ((double)t) / CLOCKS_PER_SEC);
+    printf("{\"PI\": %.50lf, \"time\": %.10lf}\n", pi, ((double)t) / CLOCKS_PER_SEC);
 
     return 0;
 } /* main */

@@ -69,7 +69,7 @@ int main( int argc, char **argv ) {
     
     t = clock() - t; 
 
-    printf("{\"Integral\": %.20lf, \"time\": %.10lf}", local_integral, ((double)t) / CLOCKS_PER_SEC);
+    printf("{\"Integral\": %.20lf, \"time\": %.10lf}\n", local_integral, ((double)t) / CLOCKS_PER_SEC);
 
 
     return 0;

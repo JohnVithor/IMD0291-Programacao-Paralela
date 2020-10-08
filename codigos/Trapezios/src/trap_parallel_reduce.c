@@ -93,7 +93,7 @@ int main( int argc, char **argv ) {
     MPI_Reduce(&local_time, &final_time, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD); 
 
     if(my_rank == 0) {
-        printf("{\"Integral\": %.20lf, \"time\": %.10lf}", total_integral, final_time);
+        printf("{\"Integral\": %.20lf, \"time\": %.10lf}\n", total_integral, final_time);
     }
     MPI_Finalize();
 
