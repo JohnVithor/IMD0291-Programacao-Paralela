@@ -2,15 +2,21 @@
 #include <errno.h>   // for errno
 #include <limits.h>  // for INT_MAX
 #include <stdlib.h>  // for strtol
+#include <time.h>
 
-void print_vector(double *vector, int n){
-    printf("%lf", vector[0]);
+void print_and_validade_order(int *vector, int n){
+    printf("%d", vector[0]);
+    int less = vector[0];
     for (int i = 1; i < n; ++i) {
-        printf(" %lf", vector[i]);
+        printf(", %d", vector[i]);
+        if(less > vector[i]){
+            exit(-1);
+        }
+        less = vector[i];
     }
 }
 
-void odd_even_sort(double *a, int n) {
+void odd_even_sort(int *a, int n) {
     int phase, i, temp;
     for (phase = 0; phase < n; ++phase) {
         if(phase % 2 == 0) {
@@ -46,43 +52,36 @@ int convert_str_int(char* str) {
     return (int) conv;
 }
 
-double convert_str_double(char* str) {
-    char *p;
-    errno = 0;
-    double conv = strtod(str, &p);
-
-    if (errno != 0 || *p != '\0') {
-        printf("%s não é um número!\n", str);
-        exit(-1);
-    }
-    return (double) conv;
-}
-
 int main( int argc, char **argv ) {
 
-    if (argc < 3) {
-        printf("É necessário informar 2 argumentos na seguinte ordem:\n");
-        printf("1º Tamanho do vetor\n2º Elementos do vetor\n");
+if (argc != 4) {
+        printf("É necessário informar 3 argumentos na seguinte ordem:\n");
+        printf("1º Seed para gerar os números pseudo-aleatórios\n2º Tamanho do vetor\n3º 1 se o resultado da ordenação deve ser exibido e 0 caso contrário\n");
         return -1;
     }
 
-    int n = convert_str_int(argv[1]);
+    unsigned int seed = convert_str_int(argv[1]);
+    int n = convert_str_int(argv[2]);
+    int print_result = convert_str_int(argv[3]);
 
-    if(argc - n != 2){
-        printf("O número de elementos do vetor é diferente do numero de elementos esperados.\nNumero de elementos esperados: %d\nNúmero de elementos informados: %d\n", n, argc - 2);
-        return -1;
-    }
-
-    double *a = NULL;
+    srand(seed);
+    int *a = malloc(n*sizeof(int));
     
-    a = calloc(n,sizeof(double));
     for (int i = 0; i < n; ++i) {
-        a[i] = convert_str_double(argv[i+2]);
+        a[i] = rand();
     }
-
+    
+    clock_t t = clock();
     odd_even_sort(a, n);
-
-    print_vector(a, n);
+    t = clock() - t; 
+    
+    if (print_result == 1){
+        printf("{\"Vetor\": [");
+        print_and_validade_order(a, n);
+        printf("], \"time\": %.10lf}\n", ((double)t) / CLOCKS_PER_SEC);
+    } else {
+        printf("{\"time\": %.10lf}\n", ((double)t) / CLOCKS_PER_SEC);
+    }
 
     free(a);
 

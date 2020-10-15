@@ -1,9 +1,9 @@
 #!/bin/sh
 
-python3 comparator.py args_teste.json 7 2 1
+# python3 comparator.py args_teste.json 10 2 1
 
-mv serial_results.json serial_results1.json
-mv parallel_results.json parallel_results1.json
+# mv serial_results.json serial_results1.json
+# mv parallel_results.json parallel_results1.json
 
 python3 metrics.py args_teste.json serial_results1.json parallel_results1.json
 

@@ -53,7 +53,7 @@ for args_tuple in itertools.product(*args["args"].values()):
     if(log_level > 0):
       print("Parallel:\t", 'args:', args_tuple, "\tprocs", procs_threads)
     for i in range(repeats):
-      if(hyperthread == 1):
+      if(hyperthread == 1 and int(procs_threads) > 6):
         parallel_proc = Popen(["mpiexec", "-use-hwthread-cpus", "-n", procs_threads, programa_paralelo, *args_tuple], stdin=PIPE, stdout=PIPE, stderr=PIPE)
       else:  
         parallel_proc = Popen(["mpiexec", "-n", procs_threads, programa_paralelo, *args_tuple], stdin=PIPE, stdout=PIPE, stderr=PIPE)

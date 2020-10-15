@@ -4,18 +4,21 @@
 #include <stdlib.h>  // for strtol
 #include <mpi.h>     // For MPI functions, etc
 
-void print_vector(double *vector, int n){
-    printf("%lf", vector[0]);
+void print_and_validade_order(int *vector, int n){
+    printf("%d", vector[0]);
+    int less = vector[0];
     for (int i = 1; i < n; ++i) {
-        printf(" %lf", vector[i]);
+        printf(", %d", vector[i]);
+        if(less > vector[i]){
+            exit(-1);
+        }
+        less = vector[i];
     }
 }
 
-void sort_groups(double *a, double *b, int n) {
-    double *aux = malloc(2*n*sizeof(double));
+void sort_groups(int *a, int *b, int n, int*aux) {
     int i = 0, j = 0, c = 0;
 
-    // Start the merge of values
     while(c < 2*n && i < n && j < n) {
         if (a[i] < b[j]) {
             aux[c] = a[i];
@@ -27,9 +30,8 @@ void sort_groups(double *a, double *b, int n) {
         ++c;
     }
 
-    // Handle the leftorvers in some of the vectors
     int k = 0;
-    double *left = NULL;
+    int *left = NULL;
 
     if (i >= n) {
         k = j;
@@ -43,15 +45,13 @@ void sort_groups(double *a, double *b, int n) {
         ++c;
     }
 
-    // Put back in order
     for(i = 0; i < n; ++i) {
         a[i] = aux[i];
         b[i] = aux[i+n];
     }
-    free(aux);
 }
 
-void odd_even_sort(double *a, int n) {
+void odd_even_sort(int *a, int n) {
     int phase = 0, i = 0, temp = 0;
     for (phase = 0; phase < n; ++phase) {
         if(phase % 2 == 0) {
@@ -86,82 +86,97 @@ int convert_str_int(char* str) {
     return (int) conv;
 }
 
-double convert_str_double(char* str) {
-    char *p = NULL;
-    errno = 0;
-    double conv = strtod(str, &p);
-
-    if (errno != 0 || *p != '\0') {
-        printf("%s não é um número!\n", str);
-        exit(-1);
-    }
-    return (double) conv;
-}
-
 int main( int argc, char **argv ) {
 
-    if (argc < 3) {
-        printf("É necessário informar 2 argumentos na seguinte ordem:\n");
-        printf("1º Tamanho do vetor\n2º Elementos do vetor\n");
+    if (argc != 4) {
+        printf("É necessário informar 3 argumentos na seguinte ordem:\n");
+        printf("1º Seed para gerar os números pseudo-aleatórios\n2º Tamanho do vetor\n3º 1 se o resultado da ordenação deve ser exibido e 0 caso contrário\n");
         return -1;
     }
 
-    int n = convert_str_int(argv[1]);
+    unsigned int seed = convert_str_int(argv[1]);
+    int n = convert_str_int(argv[2]);
+    int print_result = convert_str_int(argv[3]);
 
-    if(argc - n != 2){
-        printf("O número de elementos do vetor é diferente do numero de elementos esperados.\nNumero de elementos esperados:%d numero de elementos informados:%d\n", n, argc - 2);
-        return -1;
-    }
-
-
-    double *a = NULL;
+    int *a = NULL;
+    
     int my_rank = 0, comm_sz = 0;
 
     MPI_Init(NULL, NULL);
     MPI_Comm_size( MPI_COMM_WORLD , &comm_sz);
     MPI_Comm_rank( MPI_COMM_WORLD , &my_rank);
 
-    a = malloc(n*sizeof(double));
+
+    if(n % comm_sz != 0) {
+        if(my_rank == 0) {
+            printf("É necessário que o número a serem ordenados sejam divididos igualmente entre os processos solicitados\n");
+        }
+        MPI_Finalize();
+
+        return 0;
+    }
+
+    if(my_rank == 0){
+        a = malloc(n*sizeof(int));
+    }
 
     int local_n = n / comm_sz;
-    double *local_a = a + my_rank*local_n;
-    double *local_b = malloc(local_n*sizeof(double));
+    int *local_a = malloc(local_n*sizeof(int));//a + my_rank*local_n;
+    int *local_b = malloc(local_n*sizeof(int));
+    int *aux = malloc(2*n*sizeof(int));
     
-
-    for (int i = 0; i < n; ++i) {
-        a[i] = convert_str_double(argv[i+2]);
+    srand(comm_sz + seed + my_rank);
+    
+    for (int i = 0; i < local_n; ++i) {
+        local_a[i] = rand();
     }
     
+    MPI_Barrier(MPI_COMM_WORLD);
+    double start = MPI_Wtime();
+
     odd_even_sort(local_a, local_n);
     
     for(int i = 0; i < comm_sz; ++i) {
         if(my_rank % 2 == i % 2) {
-            
             if(my_rank != comm_sz-1){
-                MPI_Recv(local_b, local_n, MPI_DOUBLE, my_rank+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                sort_groups(local_a, local_b, local_n);
-                MPI_Send(local_b, local_n, MPI_DOUBLE, my_rank+1, 0, MPI_COMM_WORLD);
+                MPI_Recv(local_b, local_n, MPI_INT, my_rank+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                sort_groups(local_a, local_b, local_n, aux);
+                MPI_Send(local_b, local_n, MPI_INT, my_rank+1, 0, MPI_COMM_WORLD);
             }            
         } else {
             if(my_rank != 0){
-                MPI_Send(local_a, local_n, MPI_DOUBLE, my_rank-1, 0, MPI_COMM_WORLD);
-                MPI_Recv(local_a, local_n, MPI_DOUBLE, my_rank-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Send(local_a, local_n, MPI_INT, my_rank-1, 0, MPI_COMM_WORLD);
+                MPI_Recv(local_a, local_n, MPI_INT, my_rank-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             }
         }
-        // barrier
         MPI_Barrier(MPI_COMM_WORLD);
     }
 
-    MPI_Gather(local_a, local_n, MPI_DOUBLE, a, local_n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Gather(local_a, local_n, MPI_INT, a, local_n, MPI_INT, 0, MPI_COMM_WORLD);
 
-    MPI_Finalize();
+    double finish = MPI_Wtime();
+
+    double local_time = finish-start;
+    double final_time = 0;
+
+    MPI_Reduce(&local_time, &final_time, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD); 
 
     if(my_rank == 0) {
-        print_vector(a, n);
+        if (print_result == 1){
+            printf("{\"Vetor\": [");
+            print_and_validade_order(a, n);
+            printf("], \"time\": %.10lf}\n", final_time);
+        } else {
+            printf("{\"time\": %.10lf}\n", final_time);
+        }
+        free(a);
     } 
 
-    free(a);
+    free(local_a);
     free(local_b);
+    free(aux);
+
+    MPI_Finalize();
 
     return 0;
 }  /* main */
