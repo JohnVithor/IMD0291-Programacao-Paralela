@@ -11,8 +11,8 @@ if len(sys.argv) != 5:
   print("0: Sem informação alguma\n1: Apenas a média de cada configuração usada é mostrada\n2: Todos os tempos obtidos são mostrados")
   sys.exit(1)
 
-programa_serial = "./bin/pi_serial.bin"
-programa_paralelo = "./bin/pi_parallel_reduce.bin"
+programa_serial = "./bin/odd_even_serial.bin"
+programa_paralelo = "./bin/odd_even_parallel.bin"
 
 with open(sys.argv[1], "r") as f:
   args = json.load(f)
