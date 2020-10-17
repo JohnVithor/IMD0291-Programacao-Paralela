@@ -116,20 +116,25 @@ int main( int argc, char **argv ) {
         return 0;
     }
 
-    srand(seed);
-    a = malloc(n*sizeof(int));
+    if(my_rank == 0) {
+        srand(seed);
+        a = malloc(n*sizeof(int));
 
-    for (int i = 0; i < n; ++i) {
-        a[i] = rand();
+        for (int i = 0; i < n; ++i) {
+            a[i] = rand();
+        }
     }
 
     int local_n = n / comm_sz;
-    int *local_a = a + my_rank*local_n;
+    int *local_a = malloc(local_n*sizeof(int));//a + my_rank*local_n;
     int *local_b = malloc(local_n*sizeof(int));
     int *aux = malloc(2*n*sizeof(int));
     
     MPI_Barrier(MPI_COMM_WORLD);
+
     double start = MPI_Wtime();
+
+    MPI_Scatter(a, local_n, MPI_INT, local_a, local_n, MPI_INT, 0, MPI_COMM_WORLD);
 
     odd_even_sort(local_a, local_n);
     
@@ -166,9 +171,10 @@ int main( int argc, char **argv ) {
         } else {
             printf("{\"time\": %.10lf}\n", final_time);
         }
+        free(a);
     } 
 
-    free(a);
+    free(local_a);
     free(local_b);
     free(aux);
 
