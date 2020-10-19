@@ -1,5 +1,12 @@
-PROG_S = odd_even_serial.bin
-PROG_P = odd_even_parallel.bin
+NAME_S = odd_even_serial
+NAME_P1 = odd_even_parallel_one_sort
+NAME_P2 = odd_even_parallel_two_sort
+NAME_P3 = odd_even_parallel_two_oddsort
+
+PROG_S = $(NAME_S).bin
+PROG_P1 = $(NAME_P1).bin
+PROG_P2 = $(NAME_P2).bin
+PROG_P3 = $(NAME_P3).bin
 
 CC = gcc
 MPI = mpicc
@@ -7,49 +14,50 @@ MPI = mpicc
 BIN_PATH = ./bin
 OBJ_PATH = ./build
 SRC_PATH = ./src
-OUT_PATH = ./out
 
 MPIFLAGS = -Wall
 CFLAGS = -Wall -ansi -pedantic -std=c11
 
-OBJS_S = $(OBJ_PATH)/odd_even_serial.o
-OBJS_P = $(OBJ_PATH)/odd_even_parallel.o
+OBJS_S = $(OBJ_PATH)/$(NAME_S).o
+OBJS_P1 = $(OBJ_PATH)/$(NAME_P1).o
+OBJS_P2 = $(OBJ_PATH)/$(NAME_P2).o
+OBJS_P3 = $(OBJ_PATH)/$(NAME_P3).o
 
 RM = rm -v
 
-all: dir $(PROG_S) $(PROG_P)
+all: dir $(PROG_S) $(PROG_P1) $(PROG_P2) $(PROG_P3)
 
 debug: CFLAGS += -g -O0 -pg
 debug: MPIFLAGS += -g -O0 -pg
 debug: dir $(PROG_S) $(PROG_P)
 
 $(PROG_S) : $(OBJS_S)
-	$(CC) -o $(BIN_PATH)/$(PROG_S) $(OBJS_S)
+	$(CC) -o $(BIN_PATH)/$(PROG_S) $(OBJS_S) -lm
 
-$(PROG_P) : $(OBJS_P)
-	$(MPI) -o $(BIN_PATH)/$(PROG_P) $(OBJS_P)
+$(OBJS_S): $(SRC_PATH)/$(NAME_S).c
+	$(CC) -c $(CFLAGS) -o $@  $<  -lm
 
-$(OBJS_S): $(SRC_PATH)/odd_even_serial.c
-	$(CC) -c $(CFLAGS) -o $@  $<
+$(PROG_P1) : $(OBJS_P1)
+	$(MPI) -o $(BIN_PATH)/$(PROG_P1) $(OBJS_P1)  -lm
 
-$(OBJS_P): $(SRC_PATH)/odd_even_parallel.c
+$(OBJS_P1): $(SRC_PATH)/$(NAME_P1).c  -lm
 	$(MPI) -c $(MPIFLAGS) -o $@ $<
 
+$(PROG_P2) : $(OBJS_P2)
+	$(MPI) -o $(BIN_PATH)/$(PROG_P2) $(OBJS_P2)  -lm
+
+$(OBJS_P2): $(SRC_PATH)/$(NAME_P2).c  -lm
+	$(MPI) -c $(MPIFLAGS) -o $@ $<
+
+$(PROG_P3) : $(OBJS_P3)
+	$(MPI) -o $(BIN_PATH)/$(PROG_P3) $(OBJS_P3)  -lm
+
+$(OBJS_P3): $(SRC_PATH)/$(NAME_P3).c  -lm
+	$(MPI) -c $(MPIFLAGS) -o $@ $<
 
 dir:
-	mkdir -p bin build out
+	mkdir -p bin build
 
 clean: dir
 	$(RM) $(BIN_PATH)/*.bin
 	$(RM) $(OBJ_PATH)/*.o
-
-run_all: run_serial run_parallel
-
-run_serial:
-	time ./bin/odd_even_serial.bin $(shell cat ${args}.txt) > $(OUT_PATH)/$(args)_serial.out
-	sort -C $(OUT_PATH)/$(args)_serial.out || echo -n "not " ; echo "sorted";
-
-run_parallel:
-	time mpiexec -n 4 ./bin/odd_even_parallel.bin $(shell cat ${args}.txt) > $(OUT_PATH)/$(args)_parallel.out
-	sort -C $(OUT_PATH)/$(args)_parallel.out || echo -n "not " ; echo "sorted";
-

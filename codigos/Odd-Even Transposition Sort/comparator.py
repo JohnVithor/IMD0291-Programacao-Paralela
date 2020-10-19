@@ -12,7 +12,9 @@ if len(sys.argv) != 5:
   sys.exit(1)
 
 programa_serial = "./bin/odd_even_serial.bin"
-programa_paralelo = "./bin/odd_even_parallel.bin"
+programa_paralelo1 = "./bin/odd_even_parallel_one_sort.bin"
+programa_paralelo2 = "./bin/odd_even_parallel_two_sort.bin"
+programa_paralelo3 = "./bin/odd_even_parallel_two_oddsort.bin"
 
 with open(sys.argv[1], "r") as f:
   args = json.load(f)
@@ -29,24 +31,7 @@ if(log_level < 0 or log_level > 3):
 for arg_type in args["args"].keys():
   print(arg_type)
 
-serial_results = {}
-parallel_results = {}
-for args_tuple in itertools.product(*args["args"].values()):
-  serial_results[str(args_tuple)] = {"mean_time":0.0, "times":[]}
-  mean_time = 0.0
-  if(log_level > 0):
-    print("Serial:\t\t", 'args:', args_tuple)
-  for i in range(repeats):
-    serial_proc = Popen([programa_serial, *args_tuple], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    output, err = serial_proc.communicate()
-    serial_results[str(args_tuple)]["times"].append(json.loads(output.decode("utf-8")))
-    if(log_level > 1):
-      print(i, "\t","%.10f" % serial_results[str(args_tuple)]["times"][-1]["time"], "seconds")
-    mean_time += serial_results[str(args_tuple)]["times"][-1]["time"]
-  serial_results[str(args_tuple)]["mean_time"] = mean_time / repeats
-  if(log_level > 0):
-    print("mean:\t", "%.10f" % serial_results[str(args_tuple)]["mean_time"], "seconds")
-  parallel_results[str(args_tuple)] = {}
+def run_parallel(parallel_results, programa_paralelo):
   for procs_threads in args["procs_threads"]:
     parallel_results[str(args_tuple)][procs_threads] = {"mean_time":0.0, "times":[]}
     mean_time = 0.0
@@ -66,10 +51,44 @@ for args_tuple in itertools.product(*args["args"].values()):
     if(log_level > 0):
       print("mean:\t", "%.10f" % parallel_results[str(args_tuple)][procs_threads]["mean_time"], "seconds")
 
+
+serial_results = {}
+parallel_results1 = {}
+parallel_results2 = {}
+parallel_results3 = {}
+for args_tuple in itertools.product(*args["args"].values()):
+  serial_results[str(args_tuple)] = {"mean_time":0.0, "times":[]}
+  mean_time = 0.0
+  if(log_level > 0):
+    print("Serial:\t\t", 'args:', args_tuple)
+  for i in range(repeats):
+    serial_proc = Popen([programa_serial, *args_tuple], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    output, err = serial_proc.communicate()
+    serial_results[str(args_tuple)]["times"].append(json.loads(output.decode("utf-8")))
+    if(log_level > 1):
+      print(i, "\t","%.10f" % serial_results[str(args_tuple)]["times"][-1]["time"], "seconds")
+    mean_time += serial_results[str(args_tuple)]["times"][-1]["time"]
+  serial_results[str(args_tuple)]["mean_time"] = mean_time / repeats
+  if(log_level > 0):
+    print("mean:\t", "%.10f" % serial_results[str(args_tuple)]["mean_time"], "seconds")
+
+  parallel_results1[str(args_tuple)] = {}
+  parallel_results2[str(args_tuple)] = {}
+  parallel_results3[str(args_tuple)] = {}
+
+  run_parallel(parallel_results1, programa_paralelo2)
+  run_parallel(parallel_results2, programa_paralelo1)
+  run_parallel(parallel_results3, programa_paralelo3)
+
 with open("serial_results.json", "w") as f:
   f.write(json.dumps(serial_results))
-with open("parallel_results.json", "w") as f:
-  f.write(json.dumps(parallel_results))
+
+with open("parallel1_results.json", "w") as f:
+  f.write(json.dumps(parallel_results1))
+with open("parallel2_results.json", "w") as f:
+  f.write(json.dumps(parallel_results2))
+with open("parallel3_results.json", "w") as f:
+  f.write(json.dumps(parallel_results3))
 
 print("Resultados salvos!")
 
