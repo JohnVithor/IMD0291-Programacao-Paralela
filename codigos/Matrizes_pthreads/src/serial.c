@@ -71,7 +71,7 @@ long convert_str_long(char *str){
 int main(int argc, char **argv){
 
     if (argc != 8) {
-        printf("É necessário informar os seguintes argumentos:\nSe as matrizes devem ser exibidas\nSeed para gerar a matriz A\nSeed para gerar a matriz B\nNúmero de linhas de A\nNúmero de colunas de A\n Número de linhas de B\nNúmero de colunas de B\n");
+        printf("É necessário informar os seguintes argumentos:\nSe as matrizes devem ser exibidas\nSeed para gerar a matriz A\nSeed para gerar a matriz B\nNúmero de linhas de A\nNúmero de colunas de A\nNúmero de linhas de B\nNúmero de colunas de B\n");
         return -1;
     }
 
