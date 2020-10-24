@@ -10,7 +10,7 @@ Original file is located at
 import pandas as pd
 import matplotlib.pyplot as plt
 
-data = pd.read_excel("oddeven3.xlsx")
+data = pd.read_excel("oddeven4.xlsx")
 
 data.index = data.loc[:, "Tamanho do Problema"]
 data = data.astype(float)
