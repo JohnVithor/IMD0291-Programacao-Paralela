@@ -1,7 +1,7 @@
 NAME_S = odd_even_serial
 NAME_P1 = odd_even_parallel_one_sort
 NAME_P2 = odd_even_parallel_two_sort
-NAME_P3 = odd_even_parallel_two_oddsort
+NAME_P3 = odd_even_parallel_two_oddsort_otim
 
 PROG_S = $(NAME_S).bin
 PROG_P1 = $(NAME_P1).bin

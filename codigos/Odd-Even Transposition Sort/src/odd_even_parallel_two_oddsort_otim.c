@@ -126,54 +126,37 @@ int main( int argc, char **argv ) {
     }
 
     int local_n = n / comm_sz;
-    int *local_a = malloc(local_n*sizeof(int));//a + my_rank*local_n;
-    int *local_b = malloc(local_n*sizeof(int));
-    int *aux = malloc(2*n*sizeof(int));
+    int *local = malloc(2*n*sizeof(int));
     
     MPI_Barrier(MPI_COMM_WORLD);
 
     double start = MPI_Wtime();
 
-    MPI_Scatter(a, local_n, MPI_INT, local_a, local_n, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Scatter(a, local_n, MPI_INT, local, local_n, MPI_INT, 0, MPI_COMM_WORLD);
 
-    odd_even_sort(local_a, local_n);
+    odd_even_sort(local, local_n);
     
     for(int i = 0; i < comm_sz; ++i) {
         if(my_rank % 2 == i % 2) {
             if(my_rank != comm_sz-1){
-                MPI_Recv(local_b, local_n, MPI_INT, my_rank+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                MPI_Send(local_a, local_n, MPI_INT, my_rank+1, 0, MPI_COMM_WORLD);
-                for (int j = 0; j < local_n; ++j){
-                    aux[j] = local_a[j];
-                }
-                for (int j = 0; j < local_n; ++j){
-                    aux[j+local_n] = local_b[j];
-                }
-                odd_even_sort(aux, 2*local_n);
-                for (int j = 0; j < local_n; ++j){
-                    local_a[j] = aux[j];
-                }
+                MPI_Recv(local + local_n, local_n, MPI_INT, my_rank+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Send(local, local_n, MPI_INT, my_rank+1, 0, MPI_COMM_WORLD);
+                odd_even_sort(local, 2*local_n);
             }            
         } else {
             if(my_rank != 0){
-                MPI_Send(local_a, local_n, MPI_INT, my_rank-1, 0, MPI_COMM_WORLD);
-                MPI_Recv(local_b, local_n, MPI_INT, my_rank-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Send(local, local_n, MPI_INT, my_rank-1, 0, MPI_COMM_WORLD);
+                MPI_Recv(local + local_n, local_n, MPI_INT, my_rank-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                odd_even_sort(local, 2*local_n);
                 for (int j = 0; j < local_n; ++j){
-                    aux[j] = local_a[j];
-                }
-                for (int j = 0; j < local_n; ++j){
-                    aux[j+local_n] = local_b[j];
-                }
-                odd_even_sort(aux, 2*local_n);
-                for (int j = 0; j < local_n; ++j){
-                    local_a[j] = aux[local_n+j];
+                    local[j] = local[local_n+j];
                 }
             }
         }
         MPI_Barrier(MPI_COMM_WORLD);
     }
 
-    MPI_Gather(local_a, local_n, MPI_INT, a, local_n, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Gather(local, local_n, MPI_INT, a, local_n, MPI_INT, 0, MPI_COMM_WORLD);
 
     double finish = MPI_Wtime();
 
@@ -193,9 +176,7 @@ int main( int argc, char **argv ) {
         free(a);
     } 
 
-    free(local_a);
-    free(local_b);
-    free(aux);
+    free(local);
 
     MPI_Finalize();
 
