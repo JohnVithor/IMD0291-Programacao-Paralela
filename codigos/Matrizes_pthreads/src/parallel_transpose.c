@@ -17,13 +17,14 @@ int colsB;
 
 double** A;
 double** B;
+double** BT;
 double** R;
 
-void multiply_row(double* linA, double** B, double* result, long colsB, long size){
+void multiply_row(double* linA, double** BT, double* result, long colsB, long size){
     for (long j = 0; j < colsB; ++j) {
         result[j] = 0;
         for (long k = 0; k < size; ++k){
-            result[j] += linA[k] * B[k][j];
+            result[j] += linA[k] * BT[j][k];
         }
     }
 }
@@ -35,7 +36,7 @@ void *Pth_mat_vect(void* rank){
     long my_last_row = (my_rank + 1) * local_linsA;
 
     for (long i = my_first_row; i < my_last_row; ++i) {
-        multiply_row(A[i], B, R[i], colsB, linsB);    
+        multiply_row(A[i], BT, R[i], colsB, linsB);    
     }
     return NULL;
 }
@@ -73,6 +74,23 @@ void fillMatrix(double** matrix, long lins, long cols, long seed){
     }
 }
 
+void transpose_line_matrix(double** matrix, double** transposed, long i, long cols){
+    for (long j = 0; j < cols; ++j) {
+        transposed[j][i] = matrix[i][j];
+    }
+}
+
+void *transpose_matrix(void* rank){
+    long my_rank = (long) rank;
+    long local_linsA = linsA / thread_count;
+    long my_first_row = my_rank * local_linsA;
+    long my_last_row = (my_rank + 1) * local_linsA;
+    for (long i = my_first_row; i < my_last_row; ++i) {
+        transpose_line_matrix(B, BT, i, colsB);
+    }
+    return NULL;
+}
+
 long convert_str_long(char *str){
     char *p;
     errno = 0;
@@ -104,8 +122,8 @@ int main(int argc, char **argv){
     linsB = convert_str_long(argv[7]);
     colsB = convert_str_long(argv[8]);
 
-    if (linsA % thread_count != 0){
-        printf("É necessário que o numero de linhas da primeira matriz sejam divididas igualmente entre a quantidade de threads solicitada\n");
+    if (linsA % thread_count != 0 && linsB % thread_count != 0){
+        printf("É necessário que o numero de linhas das matriz sejam divididas igualmente entre a quantidade de threads solicitada\n");
         return 1;
     }
 
@@ -125,10 +143,19 @@ int main(int argc, char **argv){
 
     A = allocMatrix(linsA, colsA);
     B = allocMatrix(linsB, colsB);
+    BT = allocMatrix(colsB, linsB);
     R = allocMatrix(linsA, colsB);
 
     fillMatrix(A, linsA, colsA, seedA);
     fillMatrix(B, linsB, colsB, seedB);
+
+    for (long thread = 0; thread < thread_count; ++thread) {
+        pthread_create(&threads_handles[thread], NULL, transpose_matrix, (void*) thread);
+    }
+
+    for (long thread = 0; thread < thread_count; ++thread) {
+        pthread_join(threads_handles[thread], NULL);
+    }
 
     for (long thread = 0; thread < thread_count; ++thread) {
         pthread_create(&threads_handles[thread], NULL, Pth_mat_vect, (void*) thread);

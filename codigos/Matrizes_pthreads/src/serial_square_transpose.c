@@ -38,14 +38,6 @@ void fillMatrix(double** matrix, long lins, long cols, long seed){
     }
 }
 
-void transpose_matrix(double**A, double**R, long lins, long cols){
-    for (long i = 0; i < lins; ++i) {
-        for (long j = 0; j < cols; ++j) {
-            R[j][i] = A[i][j];
-        }
-    }
-}
-
 void transpose_square_matrix(double**A, long size){
     for (long i = 0; i < size; ++i) {
         for (long j = i; j < size; ++j) {
@@ -55,8 +47,6 @@ void transpose_square_matrix(double**A, long size){
         }
     }
 }
-
-
 
 void multiply_row(double* linA, double** B, double* result, long colsB, long size){
     for (long j = 0; j < colsB; ++j) {

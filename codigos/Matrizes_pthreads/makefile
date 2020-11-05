@@ -1,5 +1,5 @@
-NAME_S = serial
-NAME_P = parallel
+NAME_S = serial_square_transpose
+NAME_P = parallel_square_transpose
 
 PROG_S = $(NAME_S).bin
 PROG_P = $(NAME_P).bin
