@@ -38,13 +38,25 @@ void fillMatrix(double** matrix, long lins, long cols, long seed){
     }
 }
 
-void transpose_matrix(double** matrix, double** transposed, long lins, long cols){
+void transpose_matrix(double**A, double**R, long lins, long cols){
     for (long i = 0; i < lins; ++i) {
         for (long j = 0; j < cols; ++j) {
-            transposed[j][i] = matrix[i][j];
+            R[j][i] = A[i][j];
         }
     }
 }
+
+void transpose_square_matrix(double**A, long size){
+    for (long i = 0; i < size; ++i) {
+        for (long j = i; j < size; ++j) {
+            double aux = A[j][i];
+            A[j][i] = A[i][j];
+            A[i][j] = aux;
+        }
+    }
+}
+
+
 
 void multiply_row(double* linA, double** B, double* result, long colsB, long size){
     for (long j = 0; j < colsB; ++j) {
@@ -77,8 +89,8 @@ long convert_str_long(char *str){
 
 int main(int argc, char **argv){
 
-    if (argc != 8) {
-        printf("É necessário informar os seguintes argumentos:\nSe as matrizes devem ser exibidas\nSeed para gerar a matriz A\nSeed para gerar a matriz B\nNúmero de linhas de A\nNúmero de colunas de A\nNúmero de linhas de B\nNúmero de colunas de B\n");
+    if (argc != 5) {
+        printf("É necessário informar os seguintes argumentos:\nSe as matrizes devem ser exibidas\nSeed para gerar a matriz A\nSeed para gerar a matriz B\nOrdem da matriz quadrada\n");
         return -1;
     }
 
@@ -87,44 +99,33 @@ int main(int argc, char **argv){
     long seedA = convert_str_long(argv[2]);
     long seedB = convert_str_long(argv[3]);
 
-    long linsA = convert_str_long(argv[4]);
-    long colsA = convert_str_long(argv[5]);
-
-    long linsB = convert_str_long(argv[6]);
-    long colsB = convert_str_long(argv[7]);
-
-    if(colsA != linsB){
-        printf("Número de colunas de A é diferente do número de linhas de B, multiplicação não é possivel.\n");
-        return -1;
-    }
+    long ordem = convert_str_long(argv[4]);
 
     clock_t t = clock();
 
-    double** A = allocMatrix(linsA, colsA);
-    double** B = allocMatrix(linsB, colsB);
-    double** BT = allocMatrix(colsB, linsB);
-    double** R = allocMatrix(linsA, colsB);
+    double** A = allocMatrix(ordem, ordem);
+    double** B = allocMatrix(ordem, ordem);
+    double** R = allocMatrix(ordem, ordem);
 
-    fillMatrix(A, linsA, colsA, seedA);
-    fillMatrix(B, linsB, colsB, seedB);
+    fillMatrix(A, ordem, ordem, seedA);
+    fillMatrix(B, ordem, ordem, seedB);
 
-    transpose_matrix(B, BT, linsB, colsB);
-    multiply_matrix(A, BT, R, linsA, colsB, colsA);
+    transpose_square_matrix(B, ordem);
+    multiply_matrix(A, B, R, ordem, ordem, ordem);
 
     t = clock() - t; 
 
     printf("{\"time\": %.10lf}\n", ((double)t) / CLOCKS_PER_SEC);
 
     if(show_matrix == 1){
-        printMatrix(A, linsA, colsA);
-        printMatrix(B, linsB, colsB);
-        printMatrix(R, linsA, colsB);
+        printMatrix(A, ordem, ordem);
+        printMatrix(B, ordem, ordem);
+        printMatrix(R, ordem, ordem);
     }
     
-    freeMatrix(A, linsA);
-    freeMatrix(B, linsB);
-    freeMatrix(BT, colsB);
-    freeMatrix(R, linsA);
+    freeMatrix(A, ordem);
+    freeMatrix(B, ordem);
+    freeMatrix(R, ordem);
 
     return 0;
 } /* main */
