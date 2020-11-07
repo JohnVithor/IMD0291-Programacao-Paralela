@@ -105,7 +105,7 @@ int main(int argc, char **argv){
 
     t = clock() - t; 
 
-    printf("{\"time\": %.10lf}\n", ((double)t) / CLOCKS_PER_SEC);
+    printf("%.10lf\n", ((double)t) / CLOCKS_PER_SEC);
 
     if(show_matrix == 1){
         printMatrix(A, ordem, ordem);

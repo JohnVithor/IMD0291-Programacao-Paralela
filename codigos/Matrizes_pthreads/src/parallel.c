@@ -143,7 +143,7 @@ int main(int argc, char **argv){
     elapsed = (finish.tv_sec - start.tv_sec);
     elapsed += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
 
-    printf("{\"time\": %.10lf}\n", elapsed);
+    printf("%.10lf\n", elapsed);
 
     if(show_matrix == 1){
         printMatrix(A, linsA, colsA);
