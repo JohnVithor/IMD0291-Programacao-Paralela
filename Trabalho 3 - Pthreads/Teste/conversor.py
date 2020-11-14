@@ -1,15 +1,11 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
+import glob
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
-import sys
 
-if len(sys.argv) != 4:
-    print("É necessario informar o caminho para o .xlsx com os tempos, speedups e eficiências")
-    print("Em seguida o numero da coluna onde os tempos do algoritmo paralelo iniciam")
-    print("E por fim informar os cores usados")
-    print("Exemplo: python3 conversor.py serial.csv parallel_1.csv parallel_2.csv")
-    sys.exit(1)
+path_serials = list(glob.glob("./*erial*.csv"))
+path_parallels = list(glob.glob("./*allel*.csv"))
 
 def remove_min_max(data):
     mins = list(data.groupby(["program", "problem_size"]).idxmin()["execution_time"].values)
@@ -56,10 +52,11 @@ def save_with_speedup_efic(dataframe, name):
 
     workbook.save(filename=name+".xlsx")
 
-serial = pd.read_csv(sys.argv[1])
-parallel_1 = pd.read_csv(sys.argv[2])
-parallel_2 = pd.read_csv(sys.argv[3])
-parallel = pd.concat([parallel_1, parallel_2])
+serials = [pd.read_csv(path) for path in path_serials]
+parallels = [pd.read_csv(path) for path in path_parallels]
+
+serial = pd.concat(serials)
+parallel = pd.concat(parallels)
 
 serial_clean = remove_min_max(serial)
 serial_clean = remove_min_max(serial_clean)

@@ -5,6 +5,8 @@
 #include <stdlib.h> // for strtol
 #include <time.h>
 
+int show_matrix = 0;
+
 void freeMatrix(double** matrix, long lins){
     for (long i = 0; i < lins; ++i) {
         free(matrix[i]);
@@ -67,6 +69,10 @@ void multiply_matrix(double** A, double** B, double** result, long linsA, long c
     shuffle(indices, linsA);
     for (long i = 0; i < linsA; ++i) {
         multiply_row(A[indices[i]], B, result[indices[i]], colsB, size);
+        if(show_matrix == 1){
+            printf("Calculando linha %ld\n", indices[i]+1);
+            printMatrix(result, linsA, colsB);
+        }
     }
 }
 
@@ -91,7 +97,7 @@ int main(int argc, char **argv){
         return -1;
     }
 
-    int show_matrix = convert_str_long(argv[1]);
+    show_matrix = convert_str_long(argv[1]);
 
     long seedA = convert_str_long(argv[2]);
     long seedB = convert_str_long(argv[3]);

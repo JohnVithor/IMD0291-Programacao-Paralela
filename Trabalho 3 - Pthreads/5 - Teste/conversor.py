@@ -2,19 +2,35 @@
 import pandas as pd
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.utils import get_column_letter
 import sys
 
-if len(sys.argv) != 4:
+if len(sys.argv) != 3:
     print("É necessario informar o caminho para o .xlsx com os tempos, speedups e eficiências")
     print("Em seguida o numero da coluna onde os tempos do algoritmo paralelo iniciam")
     print("E por fim informar os cores usados")
-    print("Exemplo: python3 conversor.py serial.csv parallel_1.csv parallel_2.csv")
+    print("Exemplo: python3 conversor.py serial.csv parallel.csv")
     sys.exit(1)
 
 def remove_min_max(data):
     mins = list(data.groupby(["program", "problem_size"]).idxmin()["execution_time"].values)
     maxs = list(data.groupby(["program", "problem_size"]).idxmax()["execution_time"].values)
     return data.drop(mins+maxs)
+
+def save(dataframe, name):
+    workbook = Workbook()
+    ws = workbook.active
+    dataframe.index
+    rows = dataframe_to_rows(dataframe, index=True, header=True)
+    ws.append(next(rows))
+    next(rows)
+    for r in rows:
+        ws.append(r)
+    ws["A1"] = "Tamanho do Problema"
+    for row in ws.rows:
+        for c in row:
+            c.number_format = '0.000000'
+    workbook.save(filename=name+".xlsx")
 
 def save_with_speedup_efic(dataframe, name):
     workbook = Workbook()
@@ -51,19 +67,22 @@ def save_with_speedup_efic(dataframe, name):
 
     for row in ws.rows:
         for c in row:
-            c.number_format = '0.0000000000'
+            c.number_format = '0.000000'
 
+#    for column_cells in ws.columns:
+#        ws.column_dimensions[get_column_letter(column_cells[0].column)].width = 20
 
     workbook.save(filename=name+".xlsx")
 
 serial = pd.read_csv(sys.argv[1])
-parallel_1 = pd.read_csv(sys.argv[2])
-parallel_2 = pd.read_csv(sys.argv[3])
-parallel = pd.concat([parallel_1, parallel_2])
+parallel = pd.read_csv(sys.argv[2])
 
 serial_clean = remove_min_max(serial)
 serial_clean = remove_min_max(serial_clean)
+serial_clean = remove_min_max(serial_clean)
+
 parallel_clean = remove_min_max(parallel)
+parallel_clean = remove_min_max(parallel_clean)
 parallel_clean = remove_min_max(parallel_clean)
 
 serial_data = serial_clean.drop(["trial", "cores"], axis=1).groupby(["program", "problem_size"]).mean()
@@ -73,6 +92,13 @@ def add_col(target, data, name):
     data.columns = [name]
     target = pd.concat([target, data[name]], axis=1)
     return target
+
+serials_compare = serial_data.loc["serial"].reset_index()
+serials_compare.columns = ["Tamanho do Problema", "Serial"]
+serials_compare = serials_compare.set_index("Tamanho do Problema")
+serials_compare = add_col(serials_compare, serial_data.loc["serial_random_line"], "Serial Random Line")
+
+save(serials_compare, "serials_compare")
 
 without_transpose = serial_data.loc["serial"].reset_index()
 without_transpose.columns = ["Tamanho do Problema", "Serial"]

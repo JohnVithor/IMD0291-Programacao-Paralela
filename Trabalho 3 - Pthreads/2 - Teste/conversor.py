@@ -2,7 +2,6 @@
 import pandas as pd
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
-from openpyxl.utils import FORMULAE
 import sys
 
 if len(sys.argv) != 4:
@@ -12,6 +11,10 @@ if len(sys.argv) != 4:
     print("Exemplo: python3 conversor.py serial.csv parallel_1.csv parallel_2.csv")
     sys.exit(1)
 
+def remove_min_max(data):
+    mins = list(data.groupby(["program", "problem_size"]).idxmin()["execution_time"].values)
+    maxs = list(data.groupby(["program", "problem_size"]).idxmax()["execution_time"].values)
+    return data.drop(mins+maxs)
 
 def save_with_speedup_efic(dataframe, name):
     workbook = Workbook()
@@ -56,10 +59,15 @@ def save_with_speedup_efic(dataframe, name):
 serial = pd.read_csv(sys.argv[1])
 parallel_1 = pd.read_csv(sys.argv[2])
 parallel_2 = pd.read_csv(sys.argv[3])
-
 parallel = pd.concat([parallel_1, parallel_2])
-parallel_data = parallel.drop("trial", axis=1).groupby(["program", "cores", "problem_size"]).mean()
-serial_data = serial.drop(["trial", "cores"], axis=1).groupby(["program", "problem_size"]).mean()
+
+serial_clean = remove_min_max(serial)
+serial_clean = remove_min_max(serial_clean)
+parallel_clean = remove_min_max(parallel)
+parallel_clean = remove_min_max(parallel_clean)
+
+serial_data = serial_clean.drop(["trial", "cores"], axis=1).groupby(["program", "problem_size"]).mean()
+parallel_data = parallel_clean.drop("trial", axis=1).groupby(["program", "cores", "problem_size"]).mean()
 
 def add_col(target, data, name):
     data.columns = [name]
