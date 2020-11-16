@@ -10,67 +10,113 @@
 
 int thread_count;
 
-int linsA;
-int colsA;
-int linsB;
-int colsB;
+double *array;
+long size;
 
-double** A;
-double** B;
-double** R;
+long *result;
+long bins;
+double *limits;
 
-void multiply_row(double* linA, double** B, double* result, long colsB, long size){
-    for (long j = 0; j < colsB; ++j) {
-        result[j] = 0;
-        for (long k = 0; k < size; ++k){
-            result[j] += linA[k] * B[k][j];
-        }
-    }
-}
+long local_size;
 
-void *Pth_mat_vect(void* rank){
-    long my_rank = (long) rank;
-    long local_linsA = linsA / thread_count;
-    long my_first_row = my_rank * local_linsA;
-    long my_last_row = (my_rank + 1) * local_linsA;
+typedef struct {
+    long min;
+    long max;
+} MinMaxPair;
 
-    for (long i = my_first_row; i < my_last_row; ++i) {
-        multiply_row(A[i], B, R[i], colsB, linsB);    
-    }
-    return NULL;
-}
+typedef struct {
+   MinMaxPair pair;
+   long rank;
+} Thread_data;
 
-void freeMatrix(double** matrix, long lins){
-    for (long i = 0; i < lins; ++i) {
-        free(matrix[i]);
-    }
-    free(matrix);
-}
-
-double** allocMatrix(long lins, long cols){
-    double** matrix = malloc(lins*sizeof(double*));
-    for (long i = 0; i < lins; ++i) {
-        matrix[i] = malloc(cols*sizeof(double));
-    }
-    return matrix;
-}
-
-void printMatrix(double** matrix, long lins, long cols){
-    for (long i = 0; i < lins; ++i) {
-        for (long j = 0; j < cols; ++j)
-            printf("%lf ", matrix[i][j]);
-        printf("\n");
+void printArrayL(long* array, long size){
+    for (long i = 0; i < size; ++i) {
+        printf("%ld ", array[i]);
     }
     printf("\n");
 }
 
-void fillMatrix(double** matrix, long lins, long cols, long seed){
-    srand(seed);
-    for (long i = 0; i < lins; ++i) {
-        for (long j = 0; j < cols; ++j) {
-            matrix[i][j]= (double) rand() / INT_MAX;
+void printArrayD(double* array, long size){
+    for (long i = 0; i < size; ++i) {
+        printf("%lf ", array[i]);
+    }
+    printf("\n");
+}
+
+MinMaxPair getMinMaxIdx(double* array, long size){
+    MinMaxPair result;
+    result.min = 0;
+    result.max = 0;
+    for (long i = 1; i < size; ++i) {
+        if (array[i] < array[result.min]){
+            result.min = i;
+        }
+        if (array[i] > array[result.max]){
+            result.max = i;
         }
     }
+    return result;
+}
+
+MinMaxPair getMinMaxIdxThread(void* thread_data) {
+    Thread_data *my_data = (Thread_data*) thread_data;
+    long start = my_data->rank * local_size;
+    //long end = (my_rank + 1) * local_size;
+    my_data->pair = getMinMaxIdx(array+start , local_size);
+}
+
+MinMaxPair getMinMaxIdxParallel(double* array, long size, pthread_t* threads_handles){
+    MinMaxPair* possible_max_min = malloc(thread_count*sizeof(MinMaxPair));
+    for (long thread = 0; thread < thread_count; ++thread) {
+        pthread_create(&threads_handles[thread], NULL, getMinMaxIdxThread, (void*) (possible_max_min+thread));
+    }
+
+    for (long thread = 0; thread < thread_count; ++thread) {
+        pthread_join(threads_handles[thread], NULL);
+    }
+    MinMaxPair pair = possible_max_min[0];
+    for (size_t i = 1; i < thread_count; ++i) {
+        if(possible_max_min[0].min < pair.min){
+            pair.min = possible_max_min[0].min;
+        }
+        if(possible_max_min[0].max < pair.max){
+            pair.max = possible_max_min[0].max;
+        }
+    }
+    
+    free(possible_max_min);
+    return pair;
+}
+
+
+void fillArray(double* array, long size, long seed){
+    srand(seed);
+    for (long i = 0; i < size; ++i) {
+        array[i] = (double) rand() / INT_MAX;
+    }
+}
+
+double* histogram(pthread_t* threads_handles) {
+    MinMaxPair pair = getMinMaxIdxParallel(array, size, threads_handles);
+    // printf("min: %.25lf, max:%.25lf\n", array[pair.min], array[pair.max]);
+    double distance = (array[pair.max] - array[pair.min]) / bins;
+    limits = malloc((bins+1)*sizeof(double));
+    for (long i = 0; i < bins; ++i) {
+        limits[i] = array[pair.min] + i*distance;
+    }
+    limits[bins] = array[pair.max];
+    for (long i = 0; i < size; ++i) {
+        // printf("%.16lf <= %.16lf: %d\n", array[i], array[i], array[i] <= array[i]);
+        // printf("%.16lf <= %.16lf: %d\n", array[i], limits[bins], array[i] <= limits[bins]);
+        for (long j = 0; j < bins; ++j) {
+            if(array[i] >= limits[j] && array[i] <= limits[j+1]) {
+                // printf("%ld - %lf está no intervalo %ld: [%lf, %lf].\n", i, array[i], j, limits[j], limits[j+1]);
+                ++result[j];
+                break;
+            }
+        }
+    }
+    return limits;
 }
 
 long convert_str_long(char *str){
@@ -88,55 +134,31 @@ long convert_str_long(char *str){
 
 int main(int argc, char **argv){
 
-    if (argc != 9) {
-        printf("É necessário informar os seguintes argumentos:\nNúmero de threads a serem usadas\nSe as matrizes devem ser exibidas\nSeed para gerar a matriz A\nSeed para gerar a matriz B\nNúmero de linhas de A\nNúmero de colunas de A\nNúmero de linhas de B\nNúmero de colunas de B\n");
+    if (argc != 6) {
+        printf("É necessário informar os seguintes argumentos:\n");
         return -1;
     }
 
     thread_count = convert_str_long(argv[1]);
-    int show_matrix = convert_str_long(argv[2]);
-    long seedA = convert_str_long(argv[3]);
-    long seedB = convert_str_long(argv[4]);
+    long show_data = convert_str_long(argv[2]);
+    long seed = convert_str_long(argv[3]);
+    size = convert_str_long(argv[4]);
+    bins = convert_str_long(argv[5]);
 
-    linsA = convert_str_long(argv[5]);
-    colsA = convert_str_long(argv[6]);
+    local_size = size / thread_count;
 
-    linsB = convert_str_long(argv[7]);
-    colsB = convert_str_long(argv[8]);
-
-    if (linsA % thread_count != 0){
-        printf("É necessário que o numero de linhas da primeira matriz sejam divididas igualmente entre a quantidade de threads solicitada\n");
-        return 1;
-    }
+    array = malloc(size*sizeof(double));
+    result = calloc(bins, sizeof(long));
+    fillArray(array, size, seed);
 
     struct timespec start, finish;
     double elapsed;
-
-    if(colsA != linsB){
-        printf("Número de colunas de A é diferente do número de linhas de B, multiplicação não é possivel.\n");
-        return -1;
-    }
 
     clock_gettime(CLOCK_MONOTONIC, &start);
 
     pthread_t* threads_handles;
 
     threads_handles = malloc(thread_count*sizeof(pthread_t));
-
-    A = allocMatrix(linsA, colsA);
-    B = allocMatrix(linsB, colsB);
-    R = allocMatrix(linsA, colsB);
-
-    fillMatrix(A, linsA, colsA, seedA);
-    fillMatrix(B, linsB, colsB, seedB);
-
-    for (long thread = 0; thread < thread_count; ++thread) {
-        pthread_create(&threads_handles[thread], NULL, Pth_mat_vect, (void*) thread);
-    }
-
-    for (long thread = 0; thread < thread_count; ++thread) {
-        pthread_join(threads_handles[thread], NULL);
-    }
 
     clock_gettime(CLOCK_MONOTONIC, &finish);
 
@@ -145,17 +167,31 @@ int main(int argc, char **argv){
 
     printf("%.10lf\n", elapsed);
 
-    if(show_matrix == 1){
-        printMatrix(A, linsA, colsA);
-        printMatrix(B, linsB, colsB);
-        printMatrix(R, linsA, colsB);
+    if(show_data > 0){
+        if(show_data > 1) {
+            printf("No array: ");
+            printArrayD(array, size);
+        }
+        printf("Temos:\n");
+        printf("%ld itens no intervalo [%lf, %lf].\n", result[0], limits[0], limits[1]);
+        for (long i = 1; i < bins; ++i) {
+            printf("%ld itens no intervalo ]%lf, %lf].\n", result[i], limits[i], limits[i+1]);
+        }
+        // long sum = 0;
+        // for (long i = 0; i < bins; ++i) {
+        //     sum += result[i];
+        // }
+        // if(sum == size){
+        //     printf("OK\n");
+        // }
+        
     }
 
     free(threads_handles);
 
-    freeMatrix(A, linsA);
-    freeMatrix(B, linsB);
-    freeMatrix(R, linsA);
+    free(array);
+    free(result);
+    free(limits);
 
     return 0;
 } /* main */
