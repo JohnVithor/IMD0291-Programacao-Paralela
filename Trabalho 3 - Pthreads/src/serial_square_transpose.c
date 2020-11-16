@@ -5,8 +5,6 @@
 #include <stdlib.h> // for strtol
 #include <time.h>
 
-int show_matrix = 0;
-
 void freeMatrix(double** matrix, long lins){
     for (long i = 0; i < lins; ++i) {
         free(matrix[i]);
@@ -40,39 +38,28 @@ void fillMatrix(double** matrix, long lins, long cols, long seed){
     }
 }
 
+void transpose_square_matrix(double**A, long size){
+    for (long i = 0; i < size; ++i) {
+        for (long j = i; j < size; ++j) {
+            double aux = A[j][i];
+            A[j][i] = A[i][j];
+            A[i][j] = aux;
+        }
+    }
+}
 
 void multiply_row(double* linA, double** B, double* result, long colsB, long size){
     for (long j = 0; j < colsB; ++j) {
         result[j] = 0;
         for (long k = 0; k < size; ++k){
-            result[j] += linA[k] * B[k][j];
-        }
-    }
-}
-
-void shuffle(long* array, long size) {
-    if (size > 1) {
-        for (int i = 0; i < size - 1; ++i) {
-          int j = i + rand() / (RAND_MAX / (size - i) + 1);
-          int t = array[j];
-          array[j] = array[i];
-          array[i] = t;
+            result[j] += linA[k] * B[j][k];
         }
     }
 }
 
 void multiply_matrix(double** A, double** B, double** result, long linsA, long colsB, long size){
-    long* indices = malloc(linsA*sizeof(long));
     for (long i = 0; i < linsA; ++i) {
-        indices[i] = i;
-    }
-    shuffle(indices, linsA);
-    for (long i = 0; i < linsA; ++i) {
-        multiply_row(A[indices[i]], B, result[indices[i]], colsB, size);
-        // if(show_matrix == 1){
-        //     printf("Calculando linha %ld\n", indices[i]+1);
-        //     printMatrix(result, linsA, colsB);
-        // }
+        multiply_row(A[i], B, result[i], colsB, size);
     }
 }
 
@@ -92,52 +79,43 @@ long convert_str_long(char *str){
 
 int main(int argc, char **argv){
 
-    if (argc != 8) {
-        printf("É necessário informar os seguintes argumentos:\nSe as matrizes devem ser exibidas\nSeed para gerar a matriz A\nSeed para gerar a matriz B\nNúmero de linhas de A\nNúmero de colunas de A\nNúmero de linhas de B\nNúmero de colunas de B\n");
+    if (argc != 5) {
+        printf("É necessário informar os seguintes argumentos:\nSe as matrizes devem ser exibidas\nSeed para gerar a matriz A\nSeed para gerar a matriz B\nOrdem da matriz quadrada\n");
         return -1;
     }
 
-    show_matrix = convert_str_long(argv[1]);
+    int show_matrix = convert_str_long(argv[1]);
 
     long seedA = convert_str_long(argv[2]);
     long seedB = convert_str_long(argv[3]);
 
-    long linsA = convert_str_long(argv[4]);
-    long colsA = convert_str_long(argv[5]);
-
-    long linsB = convert_str_long(argv[6]);
-    long colsB = convert_str_long(argv[7]);
-
-    if(colsA != linsB){
-        printf("Número de colunas de A é diferente do número de linhas de B, multiplicação não é possivel.\n");
-        return -1;
-    }
+    long ordem = convert_str_long(argv[4]);
 
     clock_t t = clock();
 
-    double** A = allocMatrix(linsA, colsA);
-    double** B = allocMatrix(linsB, colsB);
-    double** R = allocMatrix(linsA, colsB);
+    double** A = allocMatrix(ordem, ordem);
+    double** B = allocMatrix(ordem, ordem);
+    double** R = allocMatrix(ordem, ordem);
 
-    fillMatrix(A, linsA, colsA, seedA);
-    fillMatrix(B, linsB, colsB, seedB);
+    fillMatrix(A, ordem, ordem, seedA);
+    fillMatrix(B, ordem, ordem, seedB);
 
-    srand(seedA + seedB);
-    multiply_matrix(A, B, R, linsA, colsB, colsA);
+    transpose_square_matrix(B, ordem);
+    multiply_matrix(A, B, R, ordem, ordem, ordem);
 
     t = clock() - t; 
 
     printf("%.10lf\n", ((double)t) / CLOCKS_PER_SEC);
 
     if(show_matrix == 1){
-        printMatrix(A, linsA, colsA);
-        printMatrix(B, linsB, colsB);
-        printMatrix(R, linsA, colsB);
+        printMatrix(A, ordem, ordem);
+        printMatrix(B, ordem, ordem);
+        printMatrix(R, ordem, ordem);
     }
     
-    freeMatrix(A, linsA);
-    freeMatrix(B, linsB);
-    freeMatrix(R, linsA);
+    freeMatrix(A, ordem);
+    freeMatrix(B, ordem);
+    freeMatrix(R, ordem);
 
     return 0;
 } /* main */
