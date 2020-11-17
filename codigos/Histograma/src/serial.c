@@ -4,22 +4,17 @@
 #include <limits.h> // for INT_MAX
 #include <stdlib.h> // for strtol
 #include <time.h>
+#include "ltqnorm.c"
 
-#define M_PI 3.14159265358979323846
-
-double rand_gen() {
-   // return a uniformly distributed random value
-   return ( (double)(rand()) + 1. )/( (double)(RAND_MAX) + 1. );
+double rand_gen(){
+    // return a uniformly distributed random value
+    return ( (double)(rand()) + 1. )/( (double)(RAND_MAX) + 1. );
 }
+
 double normalRandom(double sigma, double mi) {
-   // return a normally distributed random value
-   return (cos(2*M_PI*rand_gen())*sqrt(-2.*log(rand_gen()))*sigma) + mi;
+    // return a normally distributed random value
+    return (ltqnorm(rand_gen())*sigma) + mi;
 }
-
-typedef struct{
-    long min;
-    long max;
-} MinMaxPair;
 
 void printArrayL(long* array, long size){
     for (long i = 0; i < size; ++i) {
@@ -35,38 +30,21 @@ void printArrayD(double* array, long size){
     printf("\n");
 }
 
-MinMaxPair getMinMaxNormal(double sigma, double mi){
-    MinMaxPair result;
-    result.min = mi - (4 * sigma);
-    result.min = mi + (4 * sigma);
-    return result;
-}
-
-
-void fillArray(double* array, long size, long seed){
-    srand(seed);
-    for (long i = 0; i < size; ++i) {
-        array[i] = normalRandom(0.5, 0);
-    }
-}
-
 double* histogram(long size, long* result, long bins, double sigma, double mi) {
-    double min = mi - (4 * sigma);
-    double max = mi + (4 * sigma);
-    // printf("min: %.25lf, max:%.25lf\n", array[pair.min], array[pair.max]);
+    double min = mi - (6 * sigma);
+    double max = mi + (6 * sigma);
     double distance = (max - min) / bins;
     double *limits = malloc((bins+1)*sizeof(double));
+
     for (long i = 0; i < bins; ++i) {
         limits[i] = min + i*distance;
     }
     limits[bins] = max;
+
     for (long i = 0; i < size; ++i) {
-        // printf("%.16lf <= %.16lf: %d\n", array[i], array[i], array[i] <= array[i]);
-        // printf("%.16lf <= %.16lf: %d\n", array[i], limits[bins], array[i] <= limits[bins]);
         double item = normalRandom(sigma, mi);
         for (long j = 0; j < bins; ++j) {
             if(item >= limits[j] && item <= limits[j+1]) {
-                // printf("%ld - %lf está no intervalo %ld: [%lf, %lf].\n", i, array[i], j, limits[j], limits[j+1]);
                 ++result[j];
                 break;
             }
@@ -91,24 +69,28 @@ long convert_str_long(char *str){
 int main(int argc, char **argv){
 
     if (argc != 7) {
-        printf("É necessário informar os seguintes argumentos:");
+        printf("É necessário informar os seguintes argumentos:\n");
+        printf("Se devememos mostrar o resultado final do histograma (0 ou 1)\n");
+        printf("Qual a seed a ser utilizada na geração dos números\n");
+        printf("Qual o número de números a serem gerados\n");
+        printf("Qual o range que será usado na geração dos números\n");
+        printf("Qual será  valor central do qual os números serão gerados\n");
         return -1;
     }
 
     long show_data = convert_str_long(argv[1]);
     long seed = convert_str_long(argv[2]);
-    srand(seed);
     long size = convert_str_long(argv[3]);
     long bins = convert_str_long(argv[4]);
 
     double sigma = convert_str_long(argv[5]);
     double mi = convert_str_long(argv[6]);
-
+    srand((seed+1) * (sigma+1) * (mi+1));
     long *result = calloc(bins, sizeof(long));
     
     clock_t t = clock();
 
-    double* limits = histogram(size, result, bins, sigma, mi);
+    double* limits = histogram(size, result, bins, sigma/4, mi);
 
     t = clock() - t; 
     printf("%.10lf\n", ((double)t) / CLOCKS_PER_SEC);
@@ -118,14 +100,6 @@ int main(int argc, char **argv){
         for (long i = 1; i < bins; ++i) {
             printf("%ld itens no intervalo ]%lf, %lf].\n", result[i], limits[i], limits[i+1]);
         }
-        // long sum = 0;
-        // for (long i = 0; i < bins; ++i) {
-        //     sum += result[i];
-        // }
-        // if(sum == size){
-        //     printf("OK\n");
-        // }
-        
     }
     free(result);
     free(limits);

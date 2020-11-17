@@ -3,31 +3,34 @@
 #include <math.h>
 #include <limits.h> // for INT_MAX
 #include <stdlib.h> // for strtol
-
+#include "ltqnorm.c"
 #define __USE_POSIX199309 1
 #include <time.h>
 #include <pthread.h>
 
 int thread_count;
 
-double *array;
 long size;
-
 long *result;
 long bins;
 double *limits;
 
+double sigma;
+double mi;
 long local_size;
 
-typedef struct {
-    long min;
-    long max;
-} MinMaxPair;
+pthread_mutex_t lock; 
 
-typedef struct {
-   MinMaxPair pair;
-   long rank;
-} Thread_data;
+
+double rand_gen(){
+    // return a uniformly distributed random value
+    return ( (double)(rand()) + 1. )/( (double)(RAND_MAX) + 1. );
+}
+
+double normalRandom() {
+    // return a normally distributed random value
+    return (ltqnorm(rand_gen())*sigma) + mi;
+}
 
 void printArrayL(long* array, long size){
     for (long i = 0; i < size; ++i) {
@@ -43,79 +46,79 @@ void printArrayD(double* array, long size){
     printf("\n");
 }
 
-MinMaxPair getMinMaxIdx(double* array, long size){
-    MinMaxPair result;
-    result.min = 0;
-    result.max = 0;
-    for (long i = 1; i < size; ++i) {
-        if (array[i] < array[result.min]){
-            result.min = i;
+void *histogram_thread(void* rank){
+    long my_rank = (long) rank;
+    long my_start = my_rank * local_size;
+    long my_end = (my_rank + 1) * local_size;
+    if(my_rank == thread_count-1){
+        my_end = size;
+    }
+
+    long *local_result = calloc(bins, sizeof(long));
+    long counter = 0;
+    long batch_size = (local_size / bins);
+
+    double* my_data = malloc(batch_size*sizeof(double));
+
+    pthread_mutex_lock(&lock); 
+    for (long j = 0; j < batch_size; ++j) {
+        my_data[j] = normalRandom();
+    }
+    pthread_mutex_unlock(&lock);
+
+    for (long i = my_start; i < my_end; ++i) {
+        double item = my_data[i % batch_size];
+        for (long j = 0; j < bins; ++j) {
+            if(item >= limits[j] && item <= limits[j+1]) {
+                ++local_result[j];
+                ++counter;
+                break;
+            }
         }
-        if (array[i] > array[result.max]){
-            result.max = i;
+        if(counter == batch_size) {
+            pthread_mutex_lock(&lock); 
+            for (long j = 0; j < bins; ++j) {
+                result[j] += local_result[j];
+                local_result[j] = 0;
+            }
+            for (long j = i; j < i + batch_size; ++j) {
+                my_data[j - i] = normalRandom();
+            }
+            pthread_mutex_unlock(&lock);
+            counter = 0;
         }
     }
-    return result;
+
+    pthread_mutex_lock(&lock); 
+    for (long j = 0; j < bins; ++j) {
+        result[j] += local_result[j];
+    }
+    pthread_mutex_unlock(&lock);
+
+    free(local_result);
+    free(my_data);
+    return NULL;
 }
 
-MinMaxPair getMinMaxIdxThread(void* thread_data) {
-    Thread_data *my_data = (Thread_data*) thread_data;
-    long start = my_data->rank * local_size;
-    //long end = (my_rank + 1) * local_size;
-    my_data->pair = getMinMaxIdx(array+start , local_size);
-}
+double* histogram(pthread_t* threads_handles) {
+    double min = mi - (6 * sigma);
+    double max = mi + (6 * sigma);
+    double distance = (max - min) / bins;
+    limits = malloc((bins+1)*sizeof(double));
 
-MinMaxPair getMinMaxIdxParallel(double* array, long size, pthread_t* threads_handles){
-    MinMaxPair* possible_max_min = malloc(thread_count*sizeof(MinMaxPair));
+    for (long i = 0; i < bins; ++i) {
+        limits[i] = min + i*distance;
+    }
+    limits[bins] = max;
+
     for (long thread = 0; thread < thread_count; ++thread) {
-        pthread_create(&threads_handles[thread], NULL, getMinMaxIdxThread, (void*) (possible_max_min+thread));
+        pthread_create(&threads_handles[thread], NULL, histogram_thread, (void*) thread);
     }
 
     for (long thread = 0; thread < thread_count; ++thread) {
         pthread_join(threads_handles[thread], NULL);
     }
-    MinMaxPair pair = possible_max_min[0];
-    for (size_t i = 1; i < thread_count; ++i) {
-        if(possible_max_min[0].min < pair.min){
-            pair.min = possible_max_min[0].min;
-        }
-        if(possible_max_min[0].max < pair.max){
-            pair.max = possible_max_min[0].max;
-        }
-    }
-    
-    free(possible_max_min);
-    return pair;
-}
 
-
-void fillArray(double* array, long size, long seed){
-    srand(seed);
-    for (long i = 0; i < size; ++i) {
-        array[i] = (double) rand() / INT_MAX;
-    }
-}
-
-double* histogram(pthread_t* threads_handles) {
-    MinMaxPair pair = getMinMaxIdxParallel(array, size, threads_handles);
-    // printf("min: %.25lf, max:%.25lf\n", array[pair.min], array[pair.max]);
-    double distance = (array[pair.max] - array[pair.min]) / bins;
-    limits = malloc((bins+1)*sizeof(double));
-    for (long i = 0; i < bins; ++i) {
-        limits[i] = array[pair.min] + i*distance;
-    }
-    limits[bins] = array[pair.max];
-    for (long i = 0; i < size; ++i) {
-        // printf("%.16lf <= %.16lf: %d\n", array[i], array[i], array[i] <= array[i]);
-        // printf("%.16lf <= %.16lf: %d\n", array[i], limits[bins], array[i] <= limits[bins]);
-        for (long j = 0; j < bins; ++j) {
-            if(array[i] >= limits[j] && array[i] <= limits[j+1]) {
-                // printf("%ld - %lf está no intervalo %ld: [%lf, %lf].\n", i, array[i], j, limits[j], limits[j+1]);
-                ++result[j];
-                break;
-            }
-        }
-    }
     return limits;
 }
 
@@ -134,8 +137,15 @@ long convert_str_long(char *str){
 
 int main(int argc, char **argv){
 
-    if (argc != 6) {
+    if (argc != 8) {
         printf("É necessário informar os seguintes argumentos:\n");
+        printf("Quantas threads devem ser criadas\n");
+        printf("Se devememos mostrar o resultado final do histograma (0 ou 1)\n");
+        printf("Qual a seed a ser utilizada na geração dos números\n");
+        printf("Qual o número de números a serem gerados\n");
+        printf("Qual o número de bins a serem utilizados\n");
+        printf("Qual o range que será usado na geração dos números\n");
+        printf("Qual será  valor central do qual os números serão gerados\n");
         return -1;
     }
 
@@ -145,11 +155,16 @@ int main(int argc, char **argv){
     size = convert_str_long(argv[4]);
     bins = convert_str_long(argv[5]);
 
+    sigma = convert_str_long(argv[6]);
+    mi = convert_str_long(argv[7]);
+
+    srand((seed+1) * (sigma+1) * (mi+1));
+
+    sigma = sigma / 4;
+
     local_size = size / thread_count;
 
-    array = malloc(size*sizeof(double));
     result = calloc(bins, sizeof(long));
-    fillArray(array, size, seed);
 
     struct timespec start, finish;
     double elapsed;
@@ -160,6 +175,8 @@ int main(int argc, char **argv){
 
     threads_handles = malloc(thread_count*sizeof(pthread_t));
 
+    double* limits = histogram(threads_handles);
+
     clock_gettime(CLOCK_MONOTONIC, &finish);
 
     elapsed = (finish.tv_sec - start.tv_sec);
@@ -168,30 +185,15 @@ int main(int argc, char **argv){
     printf("%.10lf\n", elapsed);
 
     if(show_data > 0){
-        if(show_data > 1) {
-            printf("No array: ");
-            printArrayD(array, size);
-        }
         printf("Temos:\n");
         printf("%ld itens no intervalo [%lf, %lf].\n", result[0], limits[0], limits[1]);
         for (long i = 1; i < bins; ++i) {
             printf("%ld itens no intervalo ]%lf, %lf].\n", result[i], limits[i], limits[i+1]);
         }
-        // long sum = 0;
-        // for (long i = 0; i < bins; ++i) {
-        //     sum += result[i];
-        // }
-        // if(sum == size){
-        //     printf("OK\n");
-        // }
-        
     }
-
-    free(threads_handles);
-
-    free(array);
     free(result);
     free(limits);
+    free(threads_handles);
 
     return 0;
 } /* main */

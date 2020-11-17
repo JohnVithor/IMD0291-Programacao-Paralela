@@ -27,7 +27,7 @@ debug: dir $(PROG_S) $(PROG_P)
 	if "$@" | grep -q "parallel"; then $(CC) -o $(BIN_PATH)/$@ $< -lm -lrt; else $(CC) -o $(BIN_PATH)/$@ $< -lm -lpthread -lrt; fi;
 
 .SECONDARY:
-$(OBJ_PATH)/%.o : $(SRC_PATH)/%.c
+$(OBJ_PATH)/%.o : $(SRC_PATH)/%.c $(SRC_PATH)/ltqnorm.c
 	$(CC) -c $(CFLAGS) -o $@ $<
 
 dir:
