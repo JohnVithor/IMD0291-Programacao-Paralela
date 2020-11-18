@@ -11,9 +11,16 @@ double rand_gen(unsigned int *state){
     return ( (double)(rand_r(state)) + 1. )/( (double)(RAND_MAX) + 1. );
 }
 
-double normalRandom(double sigma, double mi, unsigned int* state) {
+double truncNormalRandom(double sigma, double mi, unsigned int* state) {
     // return a normally distributed random value
-    return (ltqnorm(rand_gen(state))*sigma) + mi;
+    double value = ((ltqnorm(rand_gen(state))*sigma) + mi) / 6;
+    if (value < mi - sigma) {
+        return mi - sigma;
+    }
+    if (value > mi + sigma) {
+        return mi + sigma;
+    }
+    return value;
 }
 
 void printArrayL(long* array, long size){
@@ -31,8 +38,9 @@ void printArrayD(double* array, long size){
 }
 
 double* histogram(long size, long* result, long bins, double sigma, double mi, unsigned int state) {
-    double min = mi - (6 * sigma);
-    double max = mi + (6 * sigma);
+    double min = mi - sigma;
+    double max = mi + sigma;
+
     double distance = (max - min) / bins;
     double *limits = malloc((bins+1)*sizeof(double));
 
@@ -42,7 +50,7 @@ double* histogram(long size, long* result, long bins, double sigma, double mi, u
     limits[bins] = max;
 
     for (long i = 0; i < size; ++i) {
-        double item = normalRandom(sigma, mi, &state);
+        double item = truncNormalRandom(sigma, mi, &state);
         for (long j = 0; j < bins; ++j) {
             if(item >= limits[j] && item <= limits[j+1]) {
                 ++result[j];
@@ -66,13 +74,27 @@ long convert_str_long(char *str){
     return (long)conv;
 }
 
+double convert_str_double(char* str) {
+    char *p;
+    errno = 0;
+    double conv = strtod(str, &p);
+
+    if (errno != 0 || *p != '\0' || conv > INT_MAX) {
+        printf("%s não é um número!\n", str);
+        exit(-1);
+    }
+    return (double) conv;
+}
+
 int main(int argc, char **argv){
 
-    if (argc != 7) {
+    if (argc != 8) {
         printf("É necessário informar os seguintes argumentos:\n");
         printf("Se devememos mostrar o resultado final do histograma (0 ou 1)\n");
         printf("Qual a seed a ser utilizada na geração dos números\n");
         printf("Qual o número de números a serem gerados\n");
+        printf("Qual o número minimo de intervalos a serem usados\n");
+        printf("Qual o número maximo de intervalos a serem usados\n");
         printf("Qual o range que será usado na geração dos números\n");
         printf("Qual será  valor central do qual os números serão gerados\n");
         return -1;
@@ -81,16 +103,22 @@ int main(int argc, char **argv){
     long show_data = convert_str_long(argv[1]);
     long seed = convert_str_long(argv[2]);
     long size = convert_str_long(argv[3]);
-    long bins = convert_str_long(argv[4]);
+    
+    long min_bins = convert_str_long(argv[4]);
+    long max_bins = convert_str_long(argv[5]);
 
-    double sigma = convert_str_long(argv[5]);
-    double mi = convert_str_long(argv[6]);
+    srand(seed);
+    long bins = (rand() % (max_bins - min_bins + 1)) + min_bins; 
+
+    double sigma = convert_str_double(argv[6]);
+    double mi = convert_str_double(argv[7]);
+    
     unsigned int state = (seed+1) * (sigma+1) * (mi+1);
     long *result = calloc(bins, sizeof(long));
     
     clock_t t = clock();
 
-    double* limits = histogram(size, result, bins, sigma/4, mi, state);
+    double* limits = histogram(size, result, bins, sigma, mi, state);
 
     t = clock() - t; 
     printf("%.10lf\n", ((double)t) / CLOCKS_PER_SEC);

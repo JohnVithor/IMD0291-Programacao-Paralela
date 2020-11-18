@@ -28,9 +28,16 @@ double rand_gen(unsigned int* state){
     return ( (double)(rand_r(state)) + 1. )/( (double)(RAND_MAX) + 1. );
 }
 
-double normalRandom(unsigned int* state) {
+double truncNormalRandom(unsigned int* state) {
     // return a normally distributed random value
-    return (ltqnorm(rand_gen(state))*sigma) + mi;
+    double value = ((ltqnorm(rand_gen(state))*sigma) + mi) / 6;
+    if (value < mi - sigma) {
+        return mi - sigma;
+    }
+    if (value > mi + sigma) {
+        return mi + sigma;
+    }
+    return value;
 }
 
 void printArrayL(long* array, long size){
@@ -63,7 +70,7 @@ void *histogram_thread(void* rank){
 
     pthread_mutex_lock(&lock); 
     for (long j = 0; j < batch_size; ++j) {
-        my_data[j] = normalRandom(&state);
+        my_data[j] = truncNormalRandom(&state);
     }
     pthread_mutex_unlock(&lock);
 
@@ -83,7 +90,7 @@ void *histogram_thread(void* rank){
                 local_result[j] = 0;
             }
             for (long j = i; j < i + batch_size; ++j) {
-                my_data[j - i] = normalRandom(&state);
+                my_data[j - i] = truncNormalRandom(&state);
             }
             pthread_mutex_unlock(&lock);
             counter = 0;
@@ -102,8 +109,8 @@ void *histogram_thread(void* rank){
 }
 
 double* histogram(pthread_t* threads_handles) {
-    double min = mi - (6 * sigma);
-    double max = mi + (6 * sigma);
+    double min = mi - sigma;
+    double max = mi + sigma;
     double distance = (max - min) / bins;
     limits = malloc((bins+1)*sizeof(double));
 
@@ -138,13 +145,14 @@ long convert_str_long(char *str){
 
 int main(int argc, char **argv){
 
-    if (argc != 8) {
+    if (argc != 9) {
         printf("É necessário informar os seguintes argumentos:\n");
         printf("Quantas threads devem ser criadas\n");
         printf("Se devememos mostrar o resultado final do histograma (0 ou 1)\n");
         printf("Qual a seed a ser utilizada na geração dos números\n");
         printf("Qual o número de números a serem gerados\n");
-        printf("Qual o número de bins a serem utilizados\n");
+        printf("Qual o número minimo de intervalos a serem usados\n");
+        printf("Qual o número maximo de intervalos a serem usados\n");
         printf("Qual o range que será usado na geração dos números\n");
         printf("Qual será  valor central do qual os números serão gerados\n");
         return -1;
@@ -154,14 +162,16 @@ int main(int argc, char **argv){
     long show_data = convert_str_long(argv[2]);
     seed = convert_str_long(argv[3]);
     size = convert_str_long(argv[4]);
-    bins = convert_str_long(argv[5]);
+    long min_bins = convert_str_long(argv[5]);
+    long max_bins = convert_str_long(argv[6]);
 
-    sigma = convert_str_long(argv[6]);
-    mi = convert_str_long(argv[7]);
+    srand(seed);
+    bins = (rand() % (max_bins - min_bins + 1)) + min_bins; 
+
+    sigma = convert_str_long(argv[7]);
+    mi = convert_str_long(argv[8]);
 
     state = (seed+1) * (sigma+1) * (mi+1);
-
-    sigma = sigma / 4;
 
     local_size = size / thread_count;
 
