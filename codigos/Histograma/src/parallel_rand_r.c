@@ -15,7 +15,6 @@ long *result;
 long bins;
 double *limits;
 long seed;
-unsigned int state;
 double sigma;
 double mi;
 long local_size;
@@ -54,21 +53,14 @@ void *histogram_thread(void* rank){
     if(my_rank == thread_count-1){
         my_end = size;
     }
+    unsigned int my_state = (seed+1) * (sigma+1) * (mi+1) + my_rank;
 
     long *local_result = calloc(bins, sizeof(long));
     long counter = 0;
     long batch_size = (local_size / bins);
 
-    double* my_data = malloc(batch_size*sizeof(double));
-
-    pthread_mutex_lock(&lock); 
-    for (long j = 0; j < batch_size; ++j) {
-        my_data[j] = normalRandom(&state);
-    }
-    pthread_mutex_unlock(&lock);
-
     for (long i = my_start; i < my_end; ++i) {
-        double item = my_data[i % batch_size];
+        double item = normalRandom(&my_state);
         for (long j = 0; j < bins; ++j) {
             if(item >= limits[j] && item <= limits[j+1]) {
                 ++local_result[j];
@@ -82,9 +74,6 @@ void *histogram_thread(void* rank){
                 result[j] += local_result[j];
                 local_result[j] = 0;
             }
-            for (long j = i; j < i + batch_size; ++j) {
-                my_data[j - i] = normalRandom(&state);
-            }
             pthread_mutex_unlock(&lock);
             counter = 0;
         }
@@ -97,7 +86,6 @@ void *histogram_thread(void* rank){
     pthread_mutex_unlock(&lock);
 
     free(local_result);
-    free(my_data);
     return NULL;
 }
 
@@ -158,8 +146,6 @@ int main(int argc, char **argv){
 
     sigma = convert_str_long(argv[6]);
     mi = convert_str_long(argv[7]);
-
-    state = (seed+1) * (sigma+1) * (mi+1);
 
     sigma = sigma / 4;
 

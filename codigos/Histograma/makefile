@@ -1,5 +1,5 @@
 NAME_S = serial
-NAME_P = parallel
+NAME_P = parallel parallel_rand_r
 
 BIN_PATH = ./bin
 OBJ_PATH = ./build

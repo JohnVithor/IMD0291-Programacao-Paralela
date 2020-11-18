@@ -6,14 +6,14 @@
 #include <time.h>
 #include "ltqnorm.c"
 
-double rand_gen(){
+double rand_gen(unsigned int *state){
     // return a uniformly distributed random value
-    return ( (double)(rand()) + 1. )/( (double)(RAND_MAX) + 1. );
+    return ( (double)(rand_r(state)) + 1. )/( (double)(RAND_MAX) + 1. );
 }
 
-double normalRandom(double sigma, double mi) {
+double normalRandom(double sigma, double mi, unsigned int* state) {
     // return a normally distributed random value
-    return (ltqnorm(rand_gen())*sigma) + mi;
+    return (ltqnorm(rand_gen(state))*sigma) + mi;
 }
 
 void printArrayL(long* array, long size){
@@ -30,7 +30,7 @@ void printArrayD(double* array, long size){
     printf("\n");
 }
 
-double* histogram(long size, long* result, long bins, double sigma, double mi) {
+double* histogram(long size, long* result, long bins, double sigma, double mi, unsigned int state) {
     double min = mi - (6 * sigma);
     double max = mi + (6 * sigma);
     double distance = (max - min) / bins;
@@ -42,7 +42,7 @@ double* histogram(long size, long* result, long bins, double sigma, double mi) {
     limits[bins] = max;
 
     for (long i = 0; i < size; ++i) {
-        double item = normalRandom(sigma, mi);
+        double item = normalRandom(sigma, mi, &state);
         for (long j = 0; j < bins; ++j) {
             if(item >= limits[j] && item <= limits[j+1]) {
                 ++result[j];
@@ -85,12 +85,12 @@ int main(int argc, char **argv){
 
     double sigma = convert_str_long(argv[5]);
     double mi = convert_str_long(argv[6]);
-    srand((seed+1) * (sigma+1) * (mi+1));
+    unsigned int state = (seed+1) * (sigma+1) * (mi+1);
     long *result = calloc(bins, sizeof(long));
     
     clock_t t = clock();
 
-    double* limits = histogram(size, result, bins, sigma/4, mi);
+    double* limits = histogram(size, result, bins, sigma/4, mi, state);
 
     t = clock() - t; 
     printf("%.10lf\n", ((double)t) / CLOCKS_PER_SEC);
