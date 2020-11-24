@@ -41,12 +41,26 @@ void fillMatrix(double** matrix, long lins, long cols, long seed){
     }
 }
 
+void transpose_matrix(double** matrix, double** transposed, long lins, long cols){
+    #pragma omp parallel num_threads(numThreads) default(none) \
+    shared(matrix, transposed, lins, cols)
+    {
+        for (long i = 0; i < lins; ++i) {
+            #pragma omp task
+            {
+                for (long j = 0; j < cols; ++j) {
+                    transposed[j][i] = matrix[i][j];
+                }
+            }
+        }
+    }
+}
 
 void multiply_row(double* linA, double** B, double* result, long colsB, long size){
     for (long j = 0; j < colsB; ++j) {
         result[j] = 0;
         for (long k = 0; k < size; ++k){
-            result[j] += linA[k] * B[k][j];
+            result[j] += linA[k] * B[j][k];
         }
     }
 }
@@ -108,12 +122,14 @@ int main(int argc, char **argv){
 
     double** A = allocMatrix(linsA, colsA);
     double** B = allocMatrix(linsB, colsB);
+    double** BT = allocMatrix(colsB, linsB);
     double** R = allocMatrix(linsA, colsB);
 
     fillMatrix(A, linsA, colsA, seedA);
     fillMatrix(B, linsB, colsB, seedB);
 
-    multiply_matrix(A, B, R, linsA, colsB, colsA);
+    transpose_matrix(B, BT, linsB, colsB);
+    multiply_matrix(A, BT, R, linsA, colsB, colsA);
 
     t = omp_get_wtime() - t; 
 
@@ -127,6 +143,7 @@ int main(int argc, char **argv){
     
     freeMatrix(A, linsA);
     freeMatrix(B, linsB);
+    freeMatrix(BT, colsB);
     freeMatrix(R, linsA);
 
     return 0;

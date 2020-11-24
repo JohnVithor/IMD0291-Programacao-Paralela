@@ -1,5 +1,5 @@
-NAME_S = serial
-NAME_P = for_parallel task_parallel
+NAME_S = serial serial_transpose
+NAME_P = for_parallel task_parallel for_parallel_transpose task_parallel_transpose
 
 BIN_PATH = ./bin
 OBJ_PATH = ./build
