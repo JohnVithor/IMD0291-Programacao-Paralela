@@ -3,10 +3,17 @@
 #include <math.h>
 #include <limits.h> // for INT_MAX
 #include <stdlib.h> // for strtol
-#include "ltqnorm.c"
 #define __USE_POSIX199309 1
 #include <time.h>
 #include <pthread.h>
+# include <stdint.h>
+
+#include "ltqnorm.c"
+#include "ziggurat.c"
+
+uint32_t kn[128];
+float fn[128];
+float wn[128];
 
 int thread_count;
 
@@ -30,7 +37,9 @@ double rand_gen(unsigned int* state){
 
 double truncNormalRandom(unsigned int* state) {
     // return a normally distributed random value
-    double value = ((ltqnorm(rand_gen(state))*sigma) + mi) / 6;
+    //double value = ltqnorm(rand_gen(state));
+    double value = (double) r4_nor((uint32_t*) state, kn, fn, wn);
+    value = ((value * sigma) + mi) / 6;
     if (value < mi - sigma) {
         return mi - sigma;
     }
@@ -167,7 +176,7 @@ int main(int argc, char **argv){
 
     srand(seed);
     bins = (rand() % (max_bins - min_bins + 1)) + min_bins; 
-
+    r4_nor_setup(kn, fn, wn);
     sigma = convert_str_long(argv[7]);
     mi = convert_str_long(argv[8]);
 

@@ -4,7 +4,13 @@
 #include <limits.h> // for INT_MAX
 #include <stdlib.h> // for strtol
 #include <time.h>
+# include <stdint.h>
 #include "ltqnorm.c"
+#include "ziggurat.c"
+
+uint32_t kn[128];
+float fn[128];
+float wn[128];
 
 double rand_gen(unsigned int *state){
     // return a uniformly distributed random value
@@ -13,7 +19,9 @@ double rand_gen(unsigned int *state){
 
 double truncNormalRandom(double sigma, double mi, unsigned int* state) {
     // return a normally distributed random value
-    double value = ((ltqnorm(rand_gen(state))*sigma) + mi) / 6;
+    //double value = ltqnorm(rand_gen(state));
+    double value = (double) r4_nor((uint32_t*) state, kn, fn, wn);
+    value = ((value * sigma) + mi) / 6;
     if (value < mi - sigma) {
         return mi - sigma;
     }
@@ -108,6 +116,7 @@ int main(int argc, char **argv){
     long max_bins = convert_str_long(argv[5]);
 
     srand(seed);
+    r4_nor_setup(kn, fn, wn);
     long bins = (rand() % (max_bins - min_bins + 1)) + min_bins; 
 
     double sigma = convert_str_double(argv[6]);

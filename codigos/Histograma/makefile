@@ -9,6 +9,7 @@ CC = gcc
 MPIFLAGS = -Wall
 CFLAGS = -Wall -ansi -pedantic -std=c11
 
+
 PROG_S = $(addsuffix .bin, $(NAME_S))
 PROG_P = $(addsuffix .bin, $(NAME_P))
 OBJS_S_aux = $(addprefix $(OBJ_PATH)/, $(NAME_S))
@@ -24,10 +25,10 @@ debug: CFLAGS += -g -O0 -pg
 debug: dir $(PROG_S) $(PROG_P)
 
 %.bin : $(OBJ_PATH)/%.o
-	if "$@" | grep -q "parallel"; then $(CC) -o $(BIN_PATH)/$@ $< -lm -lrt; else $(CC) -o $(BIN_PATH)/$@ $< -lm -lpthread -lrt; fi;
+	if "$@" | grep -q "parallel"; then $(CC) $(CFLAGS) -o $(BIN_PATH)/$@ $< -lm -lrt; else $(CC) $(CFLAGS) -o $(BIN_PATH)/$@ $< -lm -lpthread -lrt; fi;
 
 .SECONDARY:
-$(OBJ_PATH)/%.o : $(SRC_PATH)/%.c $(SRC_PATH)/ltqnorm.c
+$(OBJ_PATH)/%.o : $(SRC_PATH)/%.c $(SRC_PATH)/ziggurat.c $(SRC_PATH)/ltqnorm.c
 	$(CC) -c $(CFLAGS) -o $@ $<
 
 dir:
