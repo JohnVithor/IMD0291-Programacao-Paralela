@@ -27,8 +27,8 @@ double sigma;
 double mi;
 long local_size;
 
-pthread_mutex_t lock; 
-
+pthread_mutex_t* locks; 
+pthread_mutex_t lock_r; 
 
 double rand_gen(unsigned int* state){
     // return a uniformly distributed random value
@@ -77,11 +77,11 @@ void *histogram_thread(void* rank){
 
     double* my_data = malloc(batch_size*sizeof(double));
 
-    pthread_mutex_lock(&lock); 
+    pthread_mutex_lock(&lock_r); 
     for (long j = 0; j < batch_size; ++j) {
         my_data[j] = truncNormalRandom(&state);
     }
-    pthread_mutex_unlock(&lock);
+    pthread_mutex_unlock(&lock_r);
 
     for (long i = my_start; i < my_end; ++i) {
         double item = my_data[i % batch_size];
@@ -93,24 +93,31 @@ void *histogram_thread(void* rank){
             }
         }
         if(counter == batch_size) {
-            pthread_mutex_lock(&lock); 
-            for (long j = 0; j < bins; ++j) {
-                result[j] += local_result[j];
-                local_result[j] = 0;
+            for (int j = 0; j < bins; ++j) {
+                if(local_result[j] > 0) {
+                    pthread_mutex_lock(locks+j); 
+                    result[j] += local_result[j];
+                    pthread_mutex_unlock(locks+j); 
+                    local_result[j] = 0;
+                }
             }
+            pthread_mutex_lock(&lock_r); 
             for (long j = i; j < i + batch_size; ++j) {
                 my_data[j - i] = truncNormalRandom(&state);
             }
-            pthread_mutex_unlock(&lock);
+            pthread_mutex_unlock(&lock_r);
             counter = 0;
         }
     }
 
-    pthread_mutex_lock(&lock); 
-    for (long j = 0; j < bins; ++j) {
-        result[j] += local_result[j];
+    for (int j = 0; j < bins; ++j) {
+        if(local_result[j] > 0) {
+            pthread_mutex_lock(&(locks[j])); 
+            result[j] += local_result[j];
+            pthread_mutex_unlock(&(locks[j])); 
+            local_result[j] = 0;
+        }
     }
-    pthread_mutex_unlock(&lock);
 
     free(local_result);
     free(my_data);
@@ -189,11 +196,17 @@ int main(int argc, char **argv){
     struct timespec start, finish;
     double elapsed;
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
-
     pthread_t* threads_handles;
 
     threads_handles = malloc(thread_count*sizeof(pthread_t));
+    locks = malloc(bins*sizeof(pthread_mutex_t));
+
+    for (long i = 0; i < bins; ++i) {
+        pthread_mutex_init( locks+i, NULL);
+    }
+    pthread_mutex_init( &lock_r, NULL);
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
 
     double* limits = histogram(threads_handles);
 
@@ -214,6 +227,11 @@ int main(int argc, char **argv){
     free(result);
     free(limits);
     free(threads_handles);
+
+    for (long i = 0; i < bins; ++i) {
+        pthread_mutex_destroy( locks+i);
+    }
+    pthread_mutex_destroy( &lock_r);
 
     return 0;
 } /* main */
