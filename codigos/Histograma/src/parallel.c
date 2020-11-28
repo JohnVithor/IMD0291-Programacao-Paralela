@@ -115,7 +115,6 @@ void *histogram_thread(void* rank){
             pthread_mutex_lock(&(locks[j])); 
             result[j] += local_result[j];
             pthread_mutex_unlock(&(locks[j])); 
-            local_result[j] = 0;
         }
     }
 
@@ -215,14 +214,17 @@ int main(int argc, char **argv){
     elapsed = (finish.tv_sec - start.tv_sec);
     elapsed += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
 
-    printf("%.10lf\n", elapsed);
-
-    if(show_data > 0){
-        printf("Temos:\n");
-        printf("%ld itens no intervalo [%lf, %lf].\n", result[0], limits[0], limits[1]);
+    if(show_data == 1){
+        printf("[%lf, %lf];", limits[0], limits[1]);
         for (long i = 1; i < bins; ++i) {
-            printf("%ld itens no intervalo ]%lf, %lf].\n", result[i], limits[i], limits[i+1]);
+            printf("]%lf, %lf];", limits[i], limits[i+1]);
         }
+        printf("\n%ld;", result[0]);
+        for (long i = 1; i < bins; ++i) {
+            printf("%ld;", result[i]);
+        }
+    } else {
+        printf("%.10lf\n", elapsed);
     }
     free(result);
     free(limits);

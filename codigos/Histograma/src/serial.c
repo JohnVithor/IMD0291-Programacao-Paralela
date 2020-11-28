@@ -130,13 +130,18 @@ int main(int argc, char **argv){
     double* limits = histogram(size, result, bins, sigma, mi, state);
 
     t = clock() - t; 
-    printf("%.10lf\n", ((double)t) / CLOCKS_PER_SEC);
-    if(show_data > 0){
-        printf("Temos:\n");
-        printf("%ld itens no intervalo [%lf, %lf].\n", result[0], limits[0], limits[1]);
+    
+    if(show_data == 1){
+        printf("[%lf, %lf];", limits[0], limits[1]);
         for (long i = 1; i < bins; ++i) {
-            printf("%ld itens no intervalo ]%lf, %lf].\n", result[i], limits[i], limits[i+1]);
+            printf("]%lf, %lf];", limits[i], limits[i+1]);
         }
+        printf("\n%ld;", result[0]);
+        for (long i = 1; i < bins; ++i) {
+            printf("%ld;", result[i]);
+        }
+    } else {
+        printf("%.10lf\n", ((double)t) / CLOCKS_PER_SEC);
     }
     free(result);
     free(limits);
