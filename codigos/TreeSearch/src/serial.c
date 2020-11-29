@@ -28,6 +28,31 @@ void printNode(Node* node){
     printf("\n");
 }
 
+size_t ran(size_t l, size_t r) { 
+    return (size_t) (l + (rand() % (r - l + 1))); 
+} 
+
+void print_sequence(size_t *sequence, int n){
+    printf("%ld", sequence[0]);
+    for (int i = 1; i < n; ++i) {
+        printf(", %ld", sequence[i]);
+    }
+    printf("\n");
+}
+
+size_t* createPruferSequence(unsigned int seed, size_t true_size) {
+    if (true_size < 2) {
+        return NULL;
+    }
+    srand(seed);
+    size_t size = true_size - 2;
+    size_t* sequence = malloc(size*sizeof(size_t));
+    for (size_t i = 0; i < size; ++i) {
+        sequence[i] = ran(1, size); 
+    }
+    return sequence;
+}
+
 // https://stackoverflow.com/questions/14878228/creating-a-random-tree
 // https://en.wikipedia.org/wiki/Pr%C3%BCfer_sequence
 Node* convertPruferToTree(size_t* sequence, size_t size) {
@@ -38,7 +63,7 @@ Node* convertPruferToTree(size_t* sequence, size_t size) {
         tree[i]->n_children = 1;
         tree[i]->parent = NULL;
         tree[i]->children = NULL;
-        tree[i]->value = i+1;(double) rand() / INT_MAX;
+        tree[i]->value = i+1;//(double) rand() / INT_MAX;
     }
     
     size_t* degrees = malloc(true_size*sizeof(size_t));
@@ -159,17 +184,31 @@ long convert_str_long(char *str){
 
 int main(int argc, char **argv){
 
-    if (argc != 2) {
+    if (argc != 4) {
         printf("É necessário informar os seguintes argumentos:\n");
         return -1;
     }
 
-    int show_matrix = convert_str_long(argv[1]);
+    unsigned int seed = convert_str_long(argv[1]);
+    size_t tree_size = convert_str_long(argv[2]);
+    size_t tree_number = convert_str_long(argv[3]);
 
-    size_t array[4] = {1, 4, 4, 5};
+    Node** trees = malloc(tree_number*sizeof(Node*));
 
-    Node* tree = convertPruferToTree(array, 4);
-    depthFirstSearch(tree, -1);
-    destroyTree(tree);
+    for (size_t i = 0; i < tree_number; ++i) {
+        size_t* sequence = createPruferSequence(seed, tree_size);    
+        print_sequence(sequence, tree_size - 2);
+        trees[i] = convertPruferToTree(sequence, tree_size-2);
+        free(sequence);
+        seed = seed + rand();
+    }
+   
+    //depthFirstSearch(tree, -1);
+
+    for (size_t i = 0; i < tree_number; ++i) {
+        destroyTree(trees[i]);
+    }
+    free(trees);
+    
     return 0;
 } /* main */
