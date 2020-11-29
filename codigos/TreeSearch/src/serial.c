@@ -28,10 +28,6 @@ void printNode(Node* node){
     printf("\n");
 }
 
-size_t ran(size_t l, size_t r) { 
-    return (size_t) (l + (rand() % (r - l + 1))); 
-} 
-
 void print_sequence(size_t *sequence, int n){
     printf("%ld", sequence[0]);
     for (int i = 1; i < n; ++i) {
@@ -40,6 +36,11 @@ void print_sequence(size_t *sequence, int n){
     printf("\n");
 }
 
+size_t ran(size_t l, size_t r) { 
+    return (size_t) (l + (rand() % (r - l + 1))); 
+} 
+
+// https://www.geeksforgeeks.org/random-tree-generator-using-prufer-sequence-with-examples/?ref=rp
 size_t* createPruferSequence(unsigned int seed, size_t true_size) {
     if (true_size < 2) {
         return NULL;
@@ -166,8 +167,6 @@ Node* depthFirstSearch(Node* tree, double value) {
     }
     return NULL;
 }
-
-
 
 long convert_str_long(char *str){
     char *p;
