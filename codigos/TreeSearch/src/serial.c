@@ -28,7 +28,8 @@ void printNode(Node* node){
     printf("\n");
 }
 
-
+// https://stackoverflow.com/questions/14878228/creating-a-random-tree
+// https://en.wikipedia.org/wiki/Pr%C3%BCfer_sequence
 Node* convertPruferToTree(size_t* sequence, size_t size) {
     size_t true_size = size + 2;
     Node** tree = malloc(true_size*sizeof(Node*));
@@ -119,7 +120,11 @@ void destroyTree(Node* tree) {
     free(tree);
 }
 
-
+// https://en.wikipedia.org/wiki/Tree_traversal
+// https://en.wikipedia.org/wiki/Breadth-first_search
+// https://en.wikipedia.org/wiki/Depth-first_search
+// https://en.wikipedia.org/wiki/Search_tree
+// https://github.com/JohnVithor/EDB1-2/blob/master/Arvores/include/BinaryTree/BinaryTree.inl
 Node* depthFirstSearch(Node* tree, double value) {
     if (tree == NULL) {
         return NULL;

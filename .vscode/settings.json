@@ -1,6 +1,10 @@
 {
     "files.associations": {
         "sstream": "c",
-        "random": "c"
-    }
+        "random": "c",
+        "algorithm": "c",
+        "type_traits": "c"
+    },
+    "jupyter.jupyterServerType": "local",
+    "python.pythonPath": "/home/johnvithor/anaconda3/envs/preditivoservice/bin/python"
 }
