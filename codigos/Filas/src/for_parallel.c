@@ -6,6 +6,7 @@
 #include <time.h>
 #include <omp.h>
 
+long number_of_threads = 2;
 long max_number_of_char = 10;
 long number_of_types_char = 10;
 long number_of_results = 5;
@@ -41,7 +42,7 @@ Client* createClient(long id, unsigned int seed) {
             client->initial_characteristics[i] = rand_between(1, number_of_types_char, seed);
             seed += client->initial_characteristics[i];
         }
-        if(number_of_queues - 1 > 0){
+        if(number_of_queues - 1 >= 1){
             client->derived_characteristics = malloc((number_of_queues-1)*sizeof(long*));
             for (long i = 0; i < number_of_queues-1; ++i) {
                 client->derived_characteristics[i] = malloc((client->number_of_init_chars+i+1)*sizeof(long));
@@ -54,19 +55,17 @@ Client* createClient(long id, unsigned int seed) {
     }
     
     client->identifier = id;
-    client->result = -1;
+    client->result = 0;
     return client;
 }
 
 void destroyClient(Client* client){
     if(client->number_of_init_chars > 0) {
         free(client->initial_characteristics);
-        if(number_of_queues-1 > 0){
-            for (long i = 0; i < number_of_queues-1; ++i) {
-                free(client->derived_characteristics[i]);
-            }
-            free(client->derived_characteristics);
+        for (long i = 0; i < number_of_queues-1; ++i) {
+            free(client->derived_characteristics[i]);
         }
+        free(client->derived_characteristics);
     }
     free(client);
 }
@@ -110,6 +109,8 @@ void printCSV(long* ids, long* results, long* n_of_chars, long number_of_clients
     for (long i = 0; i < number_of_clients; ++i) {
         printf("%ld, %ld, %ld\n", ids[i], results[i], n_of_chars[i]);
     }
+    
+    
 }
 
 long initialCharProcess(Client* client) {
@@ -194,19 +195,20 @@ long convert_str_long(char *str){
 
 int main(int argc, char **argv){
 
-    if (argc != 8) {
+    if (argc != 9) {
         printf("É necessário informar os seguintes argumentos:\n");
         return -1;
     }
 
-    unsigned int seed = convert_str_long(argv[1]);
+    number_of_threads = convert_str_long(argv[1]);
+    unsigned int seed = convert_str_long(argv[2]);
 
-    long number_of_clients = convert_str_long(argv[2]);
-    max_number_of_char = convert_str_long(argv[3]);
-    number_of_types_char = convert_str_long(argv[4]);
-    number_of_results = convert_str_long(argv[5]);
-    number_of_queues = convert_str_long(argv[6]);
-    long detail_level = convert_str_long(argv[7]);
+    long number_of_clients = convert_str_long(argv[3]);
+    max_number_of_char = convert_str_long(argv[4]);
+    number_of_types_char = convert_str_long(argv[5]);
+    number_of_results = convert_str_long(argv[6]);
+    number_of_queues = convert_str_long(argv[7]);
+    long detail_level = convert_str_long(argv[8]);
 
     long* ids = malloc(number_of_clients*sizeof(long));
     long* results = malloc(number_of_clients*sizeof(long));
@@ -219,14 +221,17 @@ int main(int argc, char **argv){
     }
 
     double t = omp_get_wtime();
-
-    for (long i = 0; i < number_of_clients; ++i) {
-        categorizeClient(clients[i]);
-        ids[i] = clients[i] ->identifier;
-        results[i] = clients[i] ->result;
-        n_of_chars[i] = clients[i] ->number_of_init_chars;
-        printClient(clients[i] , detail_level);
-        
+    #pragma omp parallel num_threads(number_of_threads) default(none) \
+    shared(ids, results, n_of_chars, number_of_clients, clients, detail_level)
+    {
+        #pragma omp for schedule(guided)
+        for (long i = 0; i < number_of_clients; ++i) {
+            categorizeClient(clients[i]);
+            ids[i] = clients[i] ->identifier;
+            results[i] = clients[i] ->result;
+            n_of_chars[i] = clients[i] ->number_of_init_chars;
+            printClient(clients[i] , detail_level);
+        }
     }
     t = omp_get_wtime() - t;
 

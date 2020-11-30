@@ -1,0 +1,73 @@
+
+Id: 0
+Result: 0
+Nº of characteristics: 0
+
+
+Id: 1
+Result: 3
+Nº of characteristics: 2
+Characteristics: 42, 18
+Characteristics on queue 1: 24, 24, 0
+Characteristics on queue 2: 0, 24, 24, 0
+
+Id: 2
+Result: 0
+Nº of characteristics: 0
+
+
+Id: 3
+Result: 5
+Nº of characteristics: 1
+Characteristics: 28
+Characteristics on queue 1: 0, 0
+Characteristics on queue 2: 0, 0, 0
+
+Id: 4
+Result: 4
+Nº of characteristics: 4
+Characteristics: 24, 15, 3, 29
+Characteristics on queue 1: 9, 12, 26, 5, 0
+Characteristics on queue 2: 3, 14, 21, 5, 9, 0
+
+Id: 5
+Result: 10
+Nº of characteristics: 6
+Characteristics: 34, 18, 26, 4, 2, 22
+Characteristics on queue 1: 16, 8, 22, 2, 20, 12, 0
+Characteristics on queue 2: 8, 14, 20, 18, 8, 12, 16, 0
+
+Id: 6
+Result: 9
+Nº of characteristics: 3
+Characteristics: 11, 3, 8
+Characteristics on queue 1: 8, 5, 3, 5
+Characteristics on queue 2: 3, 2, 2, 3, 0
+
+Id: 7
+Result: 0
+Nº of characteristics: 0
+
+
+Id: 8
+Result: 0
+Nº of characteristics: 0
+
+
+Id: 9
+Result: 7
+Nº of characteristics: 8
+Characteristics: 12, 29, 7, 29, 15, 14, 32, 16
+Characteristics on queue 1: 17, 22, 22, 14, 1, 18, 16, 4, 0
+Characteristics on queue 2: 5, 0, 8, 13, 17, 2, 12, 4, 17, 0
+ID,Result,Nº Initial Characteristics
+0, 0, 0
+1, 3, 2
+2, 0, 0
+3, 5, 1
+4, 4, 4
+5, 10, 6
+6, 9, 3
+7, 0, 0
+8, 0, 0
+9, 7, 8

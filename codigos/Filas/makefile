@@ -1,5 +1,5 @@
-NAME_S = serial
-NAME_P = task_parallel
+NAME_S = serial serial2
+NAME_P = for_parallel
 
 BIN_PATH = ./bin
 OBJ_PATH = ./build
@@ -34,5 +34,5 @@ dir:
 	mkdir -p bin build
 
 clean: dir
-	$(RM) $(BIN_PATH)/*.bin
+	$(RM) $(BIN_PATH)/*
 	$(RM) $(OBJ_PATH)/*.o

@@ -110,6 +110,8 @@ void printCSV(long* ids, long* results, long* n_of_chars, long number_of_clients
     for (long i = 0; i < number_of_clients; ++i) {
         printf("%ld, %ld, %ld\n", ids[i], results[i], n_of_chars[i]);
     }
+    
+    
 }
 
 long initialCharProcess(Client* client) {
@@ -214,31 +216,69 @@ int main(int argc, char **argv){
 
     Client** clients = malloc(number_of_clients*sizeof(Client*));
 
-    for (long i = 0; i < number_of_clients; ++i) {
-        clients[i] = createClient(i, seed+i);
+    Client*** levels = malloc((number_of_queues)*sizeof(Client**));
+    long** values = malloc(number_of_clients*sizeof(long*));
+
+    for (size_t i = 0; i < number_of_queues; ++i) {
+        levels[i] = malloc(number_of_clients*sizeof(Client*));
     }
 
+    for (long i = 0; i < number_of_clients; ++i) {
+        clients[i] = createClient(i, seed+i);
+        values[i] = calloc(number_of_queues, sizeof(long));
+    }
     double t = omp_get_wtime();
 
     for (long i = 0; i < number_of_clients; ++i) {
-        categorizeClient(clients[i]);
-        ids[i] = clients[i] ->identifier;
-        results[i] = clients[i] ->result;
-        n_of_chars[i] = clients[i] ->number_of_init_chars;
-        printClient(clients[i] , detail_level);
-        
+        values[i][0] = initialCharProcess(clients[i]);       
+        levels[0][i] = clients[i];
     }
-    t = omp_get_wtime() - t;
+    
+    for (long i = 0; i < number_of_queues-1; ++i) {
+        for (long j = 0; j < number_of_clients; ++j) {
+            //printf("q %ld - c %ld\n", i, j);
+            Client* client = levels[i][j];
+            values[j][i+1] += levelCharProcess(client, values[j], i);
+            if(i+1 < number_of_queues-1){
+                levels[i+1][j] = client;
+            }
+            //printf("value %ld: %ld\n", i, values[i]);
+        }
+    }
 
     for (long i = 0; i < number_of_clients; ++i) {
-        destroyClient(clients[i]);
+        Client* client = levels[number_of_queues-1][i];
+        if(client->number_of_init_chars == 0) {
+            client->result = 0;           
+        } else {
+            client->result = categoryFromValue(values[i]);
+        }
+        ids[i] = client->identifier;
+        results[i] = client->result;
+        n_of_chars[i] = client->number_of_init_chars;
+        printClient(client, detail_level);
     }
+
+    t = omp_get_wtime() - t;
+
     if(detail_level > 0) {
         printCSV(ids, results, n_of_chars, number_of_clients);
     } else {
         printf("%.10lf\n", t);
     }
-    
+  
+    for (long i = 0; i < number_of_clients; ++i) {
+        destroyClient(clients[i]);
+        free(values[i]);
+    }
+
+    for (size_t i = 0; i < number_of_queues; ++i) {
+        free(levels[i]);
+    }
+
+    free(levels);
+    free(values);
+
     free(clients);
     free(ids);
     free(results);
