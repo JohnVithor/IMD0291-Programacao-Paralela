@@ -6,6 +6,8 @@
 #include <time.h>
 #include <omp.h>
 
+size_t threads_number = 4;
+
 typedef struct Node
 {
     struct Node* parent;
@@ -79,25 +81,43 @@ Node* convertPruferToTree(size_t* sequence, size_t size) {
     size_t true_size = size + 2;
     Node** tree = malloc(true_size*sizeof(Node*));
 
-    for (size_t i = 0; i < true_size; ++i) {
-        tree[i] = malloc(sizeof(Node));
-        tree[i]->n_children = 1;
-        tree[i]->parent = NULL;
-        tree[i]->children = NULL;
-        tree[i]->value = i+1;
+    #pragma omp parallel num_threads(threads_number) default(none) shared(tree, true_size)
+    {
+        #pragma omp for schedule(guided)
+        for (size_t i = 0; i < true_size; ++i) {
+            tree[i] = malloc(sizeof(Node));
+            tree[i]->n_children = 1;
+            tree[i]->parent = NULL;
+            tree[i]->children = NULL;
+            tree[i]->value = i+1;
+        }
     }
     size_t* degrees = malloc(true_size*sizeof(size_t));
-    for (size_t i = 0; i < true_size; ++i) {
-        degrees[i] = 1;
+    #pragma omp parallel num_threads(threads_number) default(none) shared(degrees, tree, true_size)
+    {
+        #pragma omp for schedule(guided)
+        for (size_t i = 0; i < true_size; ++i) {
+            degrees[i] = 1;
+        }
     }
-    for (size_t i = 0; i < size; ++i) {
-        ++(degrees[sequence[i]-1]);
-        ++(tree[sequence[i]-1]->n_children);
+    #pragma omp parallel num_threads(threads_number) default(none) shared(degrees, sequence, tree, size)
+    {
+        #pragma omp for schedule(guided)
+        for (size_t i = 0; i < size; ++i) {
+            #pragma omp atomic
+            ++(degrees[sequence[i]-1]);
+            #pragma omp atomic
+            ++(tree[sequence[i]-1]->n_children);
+        }
     }
-    for (size_t i = 0; i < true_size; ++i) {
-        tree[i]->children = malloc(tree[i]->n_children*sizeof(Node*));
-        for (size_t j = 0; j < tree[i]->n_children; ++j) {
-            tree[i]->children[j] = NULL;
+    #pragma omp parallel num_threads(threads_number) default(none) shared(tree, true_size)
+    {
+        #pragma omp for schedule(guided)
+        for (size_t i = 0; i < true_size; ++i) {
+            tree[i]->children = malloc(tree[i]->n_children*sizeof(Node*));
+            for (size_t j = 0; j < tree[i]->n_children; ++j) {
+                tree[i]->children[j] = NULL;
+            }
         }
     }
     size_t* child_counter = calloc(true_size,sizeof(size_t));
@@ -116,13 +136,19 @@ Node* convertPruferToTree(size_t* sequence, size_t size) {
 
     size_t first = -1;
     size_t second = -1;
-    for (size_t i = 0; i < true_size; ++i) {
-        if(degrees[i] == 1) {
-            if(first == -1){
-                first = i;
-            } else {
-                second = i;
-                break;
+    #pragma omp parallel num_threads(threads_number) default(none) shared(degrees, true_size, first, second)
+    {
+        #pragma omp for schedule(guided)
+        for (size_t i = 0; i < true_size; ++i) {
+            if(degrees[i] == 1) {
+                #pragma omp critical (first_second)
+                {
+                    if(first == -1){
+                        first = i;
+                    } else {
+                        second = i;
+                    }
+                }
             }
         }
     }
@@ -134,15 +160,19 @@ Node* convertPruferToTree(size_t* sequence, size_t size) {
 
     Node* root = NULL;
 
-    for (size_t i = 0; i < true_size; ++i){
-        if(child_counter[i] == 0){
-            free(tree[i]->children);
-            tree[i]->n_children = 0;
-        }else {
-            tree[i]->n_children = child_counter[i];
-        }
-        if(tree[i]->parent == NULL){
-            root = tree[i];
+    #pragma omp parallel num_threads(threads_number) default(none) shared(root, tree, child_counter, true_size)
+    {
+        #pragma omp for schedule(guided)
+        for (size_t i = 0; i < true_size; ++i){
+            if(child_counter[i] == 0){
+                free(tree[i]->children);
+                tree[i]->n_children = 0;
+            }else {
+                tree[i]->n_children = child_counter[i];
+            }
+            if(tree[i]->parent == NULL){
+                root = tree[i];
+            }
         }
     }
     free(degrees);
@@ -175,14 +205,23 @@ void depthFirstTraversal(Node* tree, NodeFunc func, void* args, Node** result) {
     *result = (*func)(tree, args);
     if (*result == NULL){
         if( tree->n_children == 0){
-                return;
-            }
-            for (size_t i = 0; i < tree->n_children; ++i){
-                depthFirstTraversal(tree->children[i], func, args, result);
-                if(*result != NULL){
-                    break;
+            return;
+        }
+        #pragma omp parallel num_threads(threads_number) default(none) \
+        shared(tree, func, args, result)
+        {
+            #pragma omp single
+            {
+                for (size_t i = 0; i < tree->n_children; ++i){
+                    #pragma omp task
+                    {
+                        if(*result == NULL){
+                            depthFirstTraversal(tree->children[i], func, args, result);
+                        }
+                    }
                 }
             }
+        }
     }
     
 }
