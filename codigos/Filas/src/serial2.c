@@ -233,7 +233,7 @@ int main(int argc, char **argv){
         values[i][0] = initialCharProcess(clients[i]);       
         levels[0][i] = clients[i];
     }
-    
+    long last_queue = number_of_queues-1;
     for (long i = 0; i < number_of_queues-1; ++i) {
         for (long j = 0; j < number_of_clients; ++j) {
             //printf("q %ld - c %ld\n", i, j);
@@ -241,13 +241,16 @@ int main(int argc, char **argv){
             values[j][i+1] += levelCharProcess(client, values[j], i);
             if(i+1 < number_of_queues-1){
                 levels[i+1][j] = client;
+                last_queue = i+1;
             }
             //printf("value %ld: %ld\n", i, values[i]);
         }
+        // printf("q %ld - c %ld\n", i, i+1);
     }
 
     for (long i = 0; i < number_of_clients; ++i) {
-        Client* client = levels[number_of_queues-1][i];
+        // printf("q %ld - c %ld\n", number_of_queues-1, i);
+        Client* client = levels[last_queue][i];
         if(client->number_of_init_chars == 0) {
             client->result = 0;           
         } else {

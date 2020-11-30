@@ -42,7 +42,7 @@ Client* createClient(long id, unsigned int seed) {
             client->initial_characteristics[i] = rand_between(1, number_of_types_char, seed);
             seed += client->initial_characteristics[i];
         }
-        if(number_of_queues - 1 >= 1){
+        if(number_of_queues - 1 > 0){
             client->derived_characteristics = malloc((number_of_queues-1)*sizeof(long*));
             for (long i = 0; i < number_of_queues-1; ++i) {
                 client->derived_characteristics[i] = malloc((client->number_of_init_chars+i+1)*sizeof(long));
@@ -55,17 +55,19 @@ Client* createClient(long id, unsigned int seed) {
     }
     
     client->identifier = id;
-    client->result = 0;
+    client->result = -1;
     return client;
 }
 
 void destroyClient(Client* client){
     if(client->number_of_init_chars > 0) {
         free(client->initial_characteristics);
-        for (long i = 0; i < number_of_queues-1; ++i) {
-            free(client->derived_characteristics[i]);
+        if(number_of_queues-1 > 0){
+            for (long i = 0; i < number_of_queues-1; ++i) {
+                free(client->derived_characteristics[i]);
+            }
+            free(client->derived_characteristics);
         }
-        free(client->derived_characteristics);
     }
     free(client);
 }
@@ -109,8 +111,6 @@ void printCSV(long* ids, long* results, long* n_of_chars, long number_of_clients
     for (long i = 0; i < number_of_clients; ++i) {
         printf("%ld, %ld, %ld\n", ids[i], results[i], n_of_chars[i]);
     }
-    
-    
 }
 
 long initialCharProcess(Client* client) {
