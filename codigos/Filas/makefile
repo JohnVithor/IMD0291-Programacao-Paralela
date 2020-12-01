@@ -1,5 +1,5 @@
-NAME_S = serial serial2
-NAME_P = for_parallel
+NAME_S = serial_unit serial_steps
+NAME_P = parallel_unit parallel_steps
 
 BIN_PATH = ./bin
 OBJ_PATH = ./build

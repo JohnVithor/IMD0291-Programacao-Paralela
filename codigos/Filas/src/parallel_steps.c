@@ -6,10 +6,16 @@
 #include <time.h>
 #include <omp.h>
 
+long number_of_threads = 2;
 long max_number_of_char = 10;
 long number_of_types_char = 10;
 long number_of_results = 5;
 long number_of_queues = 2;
+long detail_level = 0;
+
+long* ids = NULL;
+long* results = NULL;
+long* n_of_chars = NULL;
 
 typedef struct Client
 {
@@ -123,7 +129,7 @@ long initialCharProcess(Client* client) {
 }
 
 long levelCharProcess(Client* client, long* values, long level) {
-    //printf("client: %ld - chars: %ld\n", client->identifier, client->number_of_init_chars);
+    // printf("client: %ld - chars: %ld\n", client->identifier, client->number_of_init_chars);
     long* origin = NULL;
     if (level == 0) {
         origin = client->initial_characteristics;
@@ -131,20 +137,20 @@ long levelCharProcess(Client* client, long* values, long level) {
         origin = client->derived_characteristics[level-1];
     }
     long value = 0;
-    //printf("client: %ld - level: %ld - level size: %ld\n", client->identifier, level, client->number_of_init_chars+level);
+    // printf("client: %ld - level: %ld - level size: %ld\n", client->identifier, level, client->number_of_init_chars+level);
     for (long i = 0; i < client->number_of_init_chars+level-1; ++i) {
         client->derived_characteristics[level][i] = 0;
-        for (long j = 0; j < client->number_of_init_chars+level-1; ++j) {
-            client->derived_characteristics[level][i] += abs(origin[i] - origin[j+1]);
+        for (long j = 0; j < client->number_of_init_chars+level; ++j) {
+            client->derived_characteristics[level][i] += abs(origin[i] - origin[j]);
         }
-        //printf("client: %ld - %ld: %ld\n", client->identifier,i, client->derived_characteristics[level][i]);
+        // printf("client: %ld - %ld: %ld\n", client->identifier,i, client->derived_characteristics[level][i]);
         value += client->derived_characteristics[level][i];
     }
     client->derived_characteristics[level][client->number_of_init_chars+level-1] = abs(origin[client->number_of_init_chars+level-1] - origin[0]);
-    //printf("client: %ld - %ld: %ld\n", client->identifier,client->number_of_init_chars+level-1, client->derived_characteristics[level][client->number_of_init_chars+level-1]);
+    // printf("client: %ld - %ld: %ld\n", client->identifier,client->number_of_init_chars+level-1, client->derived_characteristics[level][client->number_of_init_chars+level-1]);
     
     client->derived_characteristics[level][client->number_of_init_chars+level] = values[level];
-    //printf("client: %ld - %ld: %ld\n", client->identifier,client->number_of_init_chars+level, client->derived_characteristics[level][client->number_of_init_chars+level]);
+    // printf("client: %ld - %ld: %ld\n", client->identifier,client->number_of_init_chars+level, client->derived_characteristics[level][client->number_of_init_chars+level]);
 
     value += client->derived_characteristics[level][client->number_of_init_chars+level-1];
     value += client->derived_characteristics[level][client->number_of_init_chars+level];
@@ -181,6 +187,36 @@ void categorizeClient(Client* client) {
     free(values);
 }
 
+void taskProcessClient(Client* client, long* clientValues, long step){
+    // printf("process step %ld of %ld - %d\n", step, client->identifier, omp_get_thread_num());
+    if(client->number_of_init_chars == 0) {
+        client->result = 0;
+        ids[client->identifier] = client->identifier;
+        results[client->identifier] = client->result;
+        n_of_chars[client->identifier] = client->number_of_init_chars;
+        printClient(client, detail_level);
+        return;
+    }
+    if(step < number_of_queues-1) {
+        clientValues[step+1] += levelCharProcess(client, clientValues, step);
+        // printf("step: %ld - number_of_queues: %ld - result %ld\n", step, number_of_queues, clientValues[step+1]);
+        #pragma omp task
+        {
+            taskProcessClient(client, clientValues, step+1);
+        }
+    } else {
+        // #pragma omp task
+        // {
+            // printf("step: %ld - number_of_queues: %ld\n", step, number_of_queues);
+            client->result = categoryFromValue(clientValues);
+            ids[client->identifier] = client->identifier;
+            results[client->identifier] = client->result;
+            n_of_chars[client->identifier] = client->number_of_init_chars;
+            printClient(client, detail_level);
+        // }
+    }
+}
+
 long convert_str_long(char *str){
     char *p;
     errno = 0;
@@ -196,23 +232,35 @@ long convert_str_long(char *str){
 
 int main(int argc, char **argv){
 
-    if (argc != 8) {
+    if (argc != 9) {
         printf("É necessário informar os seguintes argumentos:\n");
+        printf("Quantidade de threads a serem usadas\n");
+        printf("Seed usada para gerar os dados\n");
+        printf("Número de clientes a serem criados\n");
+        printf("Quantidade máxima de caracteristicas por cliente\n");
+        printf("Quantidade de tipos de caracteristicas\n");
+        printf("Quantidade de resultados diferentes do 0\n");
+        printf("Número de etapas a serem utilizadas para processar o resultado\n");
+        printf("Nível de detalhe da exibição dos resultados:\n");
+        printf(" - Caso seja 0: Imprime apenas o tempo gasto\n");
+        printf(" - Caso seja 1: Imprime o Id, o Resultado e o Nª de categorias de cada cliente em um .csv\n");
+        printf(" - Caso seja n: Imprime os dados de cada cliente detalhando as caracteristicas de até n-1 etapas e ao final os dados de detalhe 1\n");
         return -1;
     }
 
-    unsigned int seed = convert_str_long(argv[1]);
+    number_of_threads = convert_str_long(argv[1]);
+    unsigned int seed = convert_str_long(argv[2]);
 
-    long number_of_clients = convert_str_long(argv[2]);
-    max_number_of_char = convert_str_long(argv[3]);
-    number_of_types_char = convert_str_long(argv[4]);
-    number_of_results = convert_str_long(argv[5]);
-    number_of_queues = convert_str_long(argv[6]);
-    long detail_level = convert_str_long(argv[7]);
+    long number_of_clients = convert_str_long(argv[3]);
+    max_number_of_char = convert_str_long(argv[4]);
+    number_of_types_char = convert_str_long(argv[5]);
+    number_of_results = convert_str_long(argv[6]);
+    number_of_queues = convert_str_long(argv[7]);
+    detail_level = convert_str_long(argv[8]);
 
-    long* ids = malloc(number_of_clients*sizeof(long));
-    long* results = malloc(number_of_clients*sizeof(long));
-    long* n_of_chars = malloc(number_of_clients*sizeof(long));
+    ids = malloc(number_of_clients*sizeof(long));
+    results = malloc(number_of_clients*sizeof(long));
+    n_of_chars = malloc(number_of_clients*sizeof(long));
 
     Client** clients = malloc(number_of_clients*sizeof(Client*));
 
@@ -229,39 +277,50 @@ int main(int argc, char **argv){
     }
     double t = omp_get_wtime();
 
-    for (long i = 0; i < number_of_clients; ++i) {
-        values[i][0] = initialCharProcess(clients[i]);       
-        levels[0][i] = clients[i];
-    }
-    long last_queue = number_of_queues-1;
-    for (long i = 0; i < number_of_queues-1; ++i) {
-        for (long j = 0; j < number_of_clients; ++j) {
-            //printf("q %ld - c %ld\n", i, j);
-            Client* client = levels[i][j];
-            values[j][i+1] += levelCharProcess(client, values[j], i);
-            if(i+1 < number_of_queues-1){
-                levels[i+1][j] = client;
-                last_queue = i+1;
+    #pragma omp parallel num_threads(number_of_threads) default(none) \
+    shared(number_of_clients, values, clients, levels)
+    {
+        #pragma omp for schedule(guided)
+        for (long i = 0; i < number_of_clients; ++i) {
+            values[i][0] = initialCharProcess(clients[i]);
+            //printf("inicio %ld - %d\n", i, omp_get_thread_num());
+            #pragma omp task
+            {
+                taskProcessClient(clients[i], values[i], 0);
             }
-            //printf("value %ld: %ld\n", i, values[i]);
         }
-        // printf("q %ld - c %ld\n", i, i+1);
     }
 
-    for (long i = 0; i < number_of_clients; ++i) {
-        // printf("q %ld - c %ld\n", number_of_queues-1, i);
-        Client* client = levels[last_queue][i];
-        if(client->number_of_init_chars == 0) {
-            client->result = 0;           
-        } else {
-            client->result = categoryFromValue(values[i]);
-        }
-        ids[i] = client->identifier;
-        results[i] = client->result;
-        n_of_chars[i] = client->number_of_init_chars;
-        printClient(client, detail_level);
-    }
+    // long last_queue = number_of_queues-1;
+    // for (long i = 0; i < number_of_queues-1; ++i) {
+    //     for (long j = 0; j < number_of_clients; ++j) {
+    //         //printf("q %ld - c %ld\n", i, j);
+    //         Client* client = levels[i][j];
+    //         values[j][i+1] += levelCharProcess(client, values[j], i);
+    //         if(i+1 < number_of_queues-1){
+    //             levels[i+1][j] = client;
+    //             last_queue = i+1;
+                
+    //         }
+    //         //printf("value %ld: %ld\n", i, values[i]);
+    //     }
+    //     // printf("q %ld - c %ld\n", i, i+1);
+    // }
 
+    // for (long i = 0; i < number_of_clients; ++i) {
+    //     // printf("q %ld - c %ld\n", number_of_queues-1, i);
+    //     Client* client = levels[last_queue][i];
+    //     if(client->number_of_init_chars == 0) {
+    //         client->result = 0;           
+    //     } else {
+    //         client->result = categoryFromValue(values[i]);
+    //     }
+    //     ids[i] = client->identifier;
+    //     results[i] = client->result;
+    //     n_of_chars[i] = client->number_of_init_chars;
+    //     
+    // }
+    #pragma omp taskwait
     t = omp_get_wtime() - t;
 
     if(detail_level > 0) {

@@ -132,8 +132,8 @@ long levelCharProcess(Client* client, long* values, long level) {
     //printf("client: %ld - level: %ld - level size: %ld\n", client->identifier, level, client->number_of_init_chars+level);
     for (long i = 0; i < client->number_of_init_chars+level-1; ++i) {
         client->derived_characteristics[level][i] = 0;
-        for (long j = 0; j < client->number_of_init_chars+level-1; ++j) {
-            client->derived_characteristics[level][i] += abs(origin[i] - origin[j+1]);
+        for (long j = 0; j < client->number_of_init_chars+level; ++j) {
+            client->derived_characteristics[level][i] += abs(origin[i] - origin[j]);
         }
         //printf("client: %ld - %ld: %ld\n", client->identifier,i, client->derived_characteristics[level][i]);
         value += client->derived_characteristics[level][i];
@@ -196,6 +196,16 @@ int main(int argc, char **argv){
 
     if (argc != 8) {
         printf("É necessário informar os seguintes argumentos:\n");
+        printf("Seed usada para gerar os dados\n");
+        printf("Número de clientes a serem criados\n");
+        printf("Quantidade máxima de caracteristicas por cliente\n");
+        printf("Quantidade de tipos de caracteristicas\n");
+        printf("Quantidade de resultados diferentes do 0\n");
+        printf("Número de etapas a serem utilizadas para processar o resultado\n");
+        printf("Nível de detalhe da exibição dos resultados:\n");
+        printf(" - Caso seja 0: Imprime apenas o tempo gasto\n");
+        printf(" - Caso seja 1: Imprime o Id, o Resultado e o Nª de categorias de cada cliente em um .csv\n");
+        printf(" - Caso seja n: Imprime os dados de cada cliente detalhando as caracteristicas de até n-1 etapas e ao final os dados de detalhe 1\n");
         return -1;
     }
 
