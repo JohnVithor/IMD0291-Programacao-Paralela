@@ -291,35 +291,6 @@ int main(int argc, char **argv){
         }
     }
 
-    // long last_queue = number_of_queues-1;
-    // for (long i = 0; i < number_of_queues-1; ++i) {
-    //     for (long j = 0; j < number_of_clients; ++j) {
-    //         //printf("q %ld - c %ld\n", i, j);
-    //         Client* client = levels[i][j];
-    //         values[j][i+1] += levelCharProcess(client, values[j], i);
-    //         if(i+1 < number_of_queues-1){
-    //             levels[i+1][j] = client;
-    //             last_queue = i+1;
-                
-    //         }
-    //         //printf("value %ld: %ld\n", i, values[i]);
-    //     }
-    //     // printf("q %ld - c %ld\n", i, i+1);
-    // }
-
-    // for (long i = 0; i < number_of_clients; ++i) {
-    //     // printf("q %ld - c %ld\n", number_of_queues-1, i);
-    //     Client* client = levels[last_queue][i];
-    //     if(client->number_of_init_chars == 0) {
-    //         client->result = 0;           
-    //     } else {
-    //         client->result = categoryFromValue(values[i]);
-    //     }
-    //     ids[i] = client->identifier;
-    //     results[i] = client->result;
-    //     n_of_chars[i] = client->number_of_init_chars;
-    //     
-    // }
     #pragma omp taskwait
     t = omp_get_wtime() - t;
 

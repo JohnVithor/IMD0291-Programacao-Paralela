@@ -45,11 +45,14 @@ void transpose_matrix(double** matrix, double** transposed, long lins, long cols
     #pragma omp parallel num_threads(numThreads) default(none) \
     shared(matrix, transposed, lins, cols)
     {
-        for (long i = 0; i < lins; ++i) {
-            #pragma omp task
-            {
-                for (long j = 0; j < cols; ++j) {
-                    transposed[j][i] = matrix[i][j];
+        #pragma omp single
+        {
+            for (long i = 0; i < lins; ++i) {
+                #pragma omp task
+                {
+                    for (long j = 0; j < cols; ++j) {
+                        transposed[j][i] = matrix[i][j];
+                    }
                 }
             }
         }
