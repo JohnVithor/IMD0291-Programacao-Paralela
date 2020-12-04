@@ -185,11 +185,9 @@ int main( int argc, char **argv ) {
     
     if (print_result == 1){
         printf("{\"Vetor\": [");
-        print_order(vector, size);
+        print_and_validade_order(vector, size);
         printf("], \"time\": %.10lf}\n", t);
-        validade_order(vector, size);
     } else {
-        validade_order(vector, size);
         printf("%.10lf\n", t);
     }
 
