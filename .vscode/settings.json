@@ -3,7 +3,18 @@
         "sstream": "c",
         "random": "c",
         "algorithm": "c",
-        "type_traits": "c"
+        "type_traits": "c",
+        "string_view": "c",
+        "optional": "c",
+        "istream": "c",
+        "ostream": "c",
+        "system_error": "c",
+        "array": "c",
+        "functional": "c",
+        "tuple": "c",
+        "utility": "c",
+        "initializer_list": "c",
+        "limits": "c"
     },
     "jupyter.jupyterServerType": "local",
     "python.pythonPath": "/home/johnvithor/anaconda3/envs/preditivoservice/bin/python"
