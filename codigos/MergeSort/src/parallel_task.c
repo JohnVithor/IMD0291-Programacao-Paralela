@@ -48,7 +48,6 @@ void merge_vector(UnsignedVector vector, ValueType left, ValueType mid, ValueTyp
 	ValueType size_L = mid - left + 1;
 	ValueType size_R = size_A - size_L;
 
-	ValueType* V_aux = malloc(size_A*sizeof(ValueType));
     ValueType* L_aux = malloc(size_L*sizeof(ValueType));
 	ValueType* R_aux = malloc(size_R*sizeof(ValueType));
 
@@ -59,30 +58,17 @@ void merge_vector(UnsignedVector vector, ValueType left, ValueType mid, ValueTyp
 	ValueType j = 0;
 	ValueType k = left;
 
-	while(i < size_L && j < size_R) {
-        V_aux[k - left] = (L_aux[i] < R_aux[j]) ? L_aux[i++] : R_aux[j++];
-        ++k;	
-	}
-
-    // #pragma omp critical (memcpy)
-    // {
-        memcpy(vector + left, V_aux, sizeof(ValueType)*(k - left));
-    // }      
+    while(i < size_L && j < size_R) {
+        vector[k++] = (L_aux[i] < R_aux[j]) ? L_aux[i++] : R_aux[j++];
+    }
 
 	if(i < size_L) {
-        // #pragma omp critical (memcpy)
-        // {
-		    memcpy(vector + k, L_aux + i, sizeof(ValueType)*(size_L-i));
-        // }
+        memcpy(vector + k, L_aux + i, sizeof(ValueType)*(size_L-i));
 	}
 	else {
-        // #pragma omp critical (memcpy)
-        // {
-		    memcpy(vector + k, R_aux + j, sizeof(ValueType)*(size_R-j));
-        // }
+        memcpy(vector + k, R_aux + j, sizeof(ValueType)*(size_R-j));
 	}
 
-    free(V_aux);
 	free(L_aux);
 	free(R_aux);
 }
@@ -96,84 +82,48 @@ void merge_sort_vector_internal(UnsignedVector vector, ValueType left, ValueType
 	}
 }
 
-    // #pragma omp for schedule(guided)
-    // for (ValueType i = 1; i <= (threads_number-1)/2; ++i) {
-    //     ValueType j = 0
-    //     for (j = 0; j < threads_number-i; j+=2*i) {
-    //         merge_vector(vector, limits[j], limits[j+i], limits[j+(2*i)]);
-    //     }
-    //     if(j < threads_number){
-    //         merge_vector(vector, 0, limits[threads_number-1], limits[threads_number]);
-    //     }
-    // }
-
 void merge_vectors(UnsignedVector vector, UnsignedVector limits, ValueType size) {
     if(size < 2){
         return;
     }
-    if(size % 2 == 0){
-        // printf("merge: %u to %u\n", limits[0], limits[(size/2)]);
-        
-        // printf("{\"Vetor\": [");
-        // print_order(vector+limits[0], limits[(size/2)]);
-        // printf("]\n");
-        
-        merge_vectors(vector, limits, (size/2) );
-        
-        // printf("{\"Vetor\": [");
-        // print_order(vector+limits[0], limits[(size/2)]);
-        // printf("]\n");
-        
-        // printf("merge: %u to %u\n", limits[(size/2)], limits[size]);
-
-        // printf("{\"Vetor\": [");
-        // print_order(vector+(limits + (size/2))[0], limits[size] - limits[size/2]);
-        // printf("]\n");
-
-        merge_vectors(vector, limits + (size/2), (size/2));
-        
-        // printf("{\"Vetor\": [");
-        // print_order(vector+(limits + (size/2))[0], limits[size] - limits[size/2]);
-        // printf("]\n");
-
-        // printf("merge: %u to %u\n", limits[0], limits[size]);
-
-        // printf("{\"Vetor\": [");
-        // print_order(vector+limits[0], limits[size]);
-        // printf("]\n");
-
+    if(size == 2){
         merge_vector(vector, limits[0], limits[(size/2)]-1, limits[size]-1);
-        
-        // printf("{\"Vetor\": [");
-        // print_order(vector+limits[0], limits[size]);
-        // printf("]\n");
+        return;
+    }
+    if(size == 3){
+        merge_vector(vector, limits[0], limits[(size/2)]-1, limits[size-1]-1);
+        merge_vector(vector, limits[0], limits[size-1]-1, limits[size]-1);
+        return;
+    }
+    if(size % 2 == 0) {
+        #pragma omp parallel sections num_threads(threads_number) default(none) shared(vector, limits, size)
+        {
+            #pragma omp section
+            {
+                merge_vectors(vector, limits, (size/2) );
+            }
+            #pragma omp section
+            {
+                merge_vectors(vector, limits + (size/2), (size/2));
+            }           
+        }
+        merge_vector(vector, limits[0], limits[(size/2)]-1, limits[size]-1);
     } else {
-        merge_vectors(vector, limits, (size/2) );
-        
-        // printf("{\"Vetor\": [");
-        // print_order(vector+limits[0], limits[(size/2)]);
-        // printf("]\n");
-        
-        merge_vectors(vector, limits + (size/2), (size/2));
-
-        // printf("{\"Vetor\": [");
-        // print_order(vector+(limits + (size/2))[0], limits[size]);
-        // printf("]\n");
-
-        merge_vector(vector, limits[0], limits[(size/2)], limits[size-1]);
-
-        // printf("{\"Vetor\": [");
-        // print_order(vector+limits[0], limits[size-1]);
-        // printf("]\n");
-
-        merge_vector(vector, limits[0], limits[size-1], limits[size]);
-
-        // printf("{\"Vetor\": [");
-        // print_order(vector+limits[0], limits[size]);
-        // printf("]\n");
+        #pragma omp parallel sections num_threads(threads_number) default(none) shared(vector, limits, size)
+        {
+            #pragma omp section
+            {
+                merge_vectors(vector, limits, (size/2) );
+            }
+            #pragma omp section
+            {
+                merge_vectors(vector, limits + (size/2), (size/2));
+            }
+        }
+        merge_vector(vector, limits[0], limits[(size/2)]-1, limits[size-1]-1);
+        merge_vector(vector, limits[0], limits[size-1]-1, limits[size]-1);
     }
 }
-
 
 void merge_sort_vector(UnsignedVector vector, ValueType left, ValueType right) {
     ValueType distance = (right - left) / threads_number;
@@ -181,25 +131,18 @@ void merge_sort_vector(UnsignedVector vector, ValueType left, ValueType right) {
 
     for (ValueType i = 0; i < threads_number; ++i) {
         limits[i] = (left + i*distance);
-        // printf("limit %u: %u\n", i, limits[i]);
     }
     limits[threads_number] = right;
-    // printf("limit %u: %u\n", threads_number, limits[threads_number]);
-
-    
 
     #pragma omp parallel num_threads(threads_number) default(none) shared(vector, limits, threads_number)
     {
         #pragma omp for schedule(guided)
         for (ValueType j = 0; j < threads_number; ++j) {
-            // printf("sorting: %u to %u\n", limits[j], limits[j+1]);
-            // printf("sorting: %u to %u\n", vector[limits[j]], vector[limits[j+1]-1]);
             merge_sort_vector_internal(vector, limits[j], limits[j+1]-1);
         }
     }
     merge_vectors(vector, limits, threads_number);
 
-	//merge_sort_vector_internal(vector, left, right);
     free(limits);
 }
 
@@ -235,9 +178,6 @@ int main( int argc, char **argv ) {
     for (int i = 0; i < size; ++i) {
         vector[i] = rand();
     }
-    // printf("{\"Vetor\": [");
-    // print_order(vector, size);
-    // printf("]\n");
 
     double t = omp_get_wtime();
     merge_sort_vector(vector, 0, size);
