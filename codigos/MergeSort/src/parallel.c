@@ -190,7 +190,7 @@ int main( int argc, char **argv ) {
         validade_order(vector, size);
     } else {
         validade_order(vector, size);
-        printf("{\"time\": %.10lf}\n", t);
+        printf("%.10lf\n", t);
     }
 
     free(vector);

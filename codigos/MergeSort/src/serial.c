@@ -108,7 +108,7 @@ int main( int argc, char **argv ) {
         print_and_validade_order(vector, size);
         printf("], \"time\": %.10lf}\n", ((double)t) / CLOCKS_PER_SEC);
     } else {
-        printf("{\"time\": %.10lf}\n", ((double)t) / CLOCKS_PER_SEC);
+        printf("%.10lf\n", ((double)t) / CLOCKS_PER_SEC);
     }
 
     free(vector);
