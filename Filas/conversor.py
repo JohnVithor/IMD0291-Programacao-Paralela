@@ -28,7 +28,7 @@ def save_with_speedup_efic(dataframe, name):
     ws.cell(row=1, column=start_column+2).value = "Speedup 16"
     ws.cell(row=1, column=start_column+3).value = "Speedup 32"
 
-    for i in range(2, 8):
+    for i in range(2, 10):
         ws["G"+str(i)] = "=B"+str(i)+" / C"+str(i)
         ws["H"+str(i)] = "=B"+str(i)+" / D"+str(i)
         ws["I"+str(i)] = "=B"+str(i)+" / E"+str(i)
@@ -39,7 +39,7 @@ def save_with_speedup_efic(dataframe, name):
     ws["M1"] = "Eficiência 16"
     ws["N1"] = "Eficiência 32"
 
-    for i in range(2, 8):
+    for i in range(2, 10):
         ws["K"+str(i)] = "=G"+str(i)+" / C1"
         ws["L"+str(i)] = "=H"+str(i)+" / D1"
         ws["M"+str(i)] = "=I"+str(i)+" / E1"
@@ -71,13 +71,24 @@ def add_col(target, data, name):
     target = pd.concat([target, data[name]], axis=1)
     return target
 
-without_transpose = serial_data.loc["serial"].reset_index()
+without_transpose = serial_data.loc["serial_unit"].reset_index()
 without_transpose.columns = ["Tamanho do Problema", "Serial"]
 without_transpose = without_transpose.set_index("Tamanho do Problema")
-without_transpose = add_col(without_transpose, parallel_data.loc["parallel"].loc[4], "4")
-without_transpose = add_col(without_transpose, parallel_data.loc["parallel"].loc[8], "8")
-without_transpose = add_col(without_transpose, parallel_data.loc["parallel"].loc[16], "16")
-without_transpose = add_col(without_transpose, parallel_data.loc["parallel"].loc[32], "32")
+without_transpose = add_col(without_transpose, parallel_data.loc["parallel_unit"].loc[4], "4")
+without_transpose = add_col(without_transpose, parallel_data.loc["parallel_unit"].loc[8], "8")
+without_transpose = add_col(without_transpose, parallel_data.loc["parallel_unit"].loc[16], "16")
+without_transpose = add_col(without_transpose, parallel_data.loc["parallel_unit"].loc[32], "32")
 
-save_with_speedup_efic(without_transpose, "merge_sort")
+save_with_speedup_efic(without_transpose, "parallel_unit")
+
+without_transpose = serial_data.loc["serial_steps"].reset_index()
+without_transpose.columns = ["Tamanho do Problema", "Serial"]
+without_transpose = without_transpose.set_index("Tamanho do Problema")
+without_transpose = add_col(without_transpose, parallel_data.loc["parallel_steps"].loc[4], "4")
+without_transpose = add_col(without_transpose, parallel_data.loc["parallel_steps"].loc[8], "8")
+without_transpose = add_col(without_transpose, parallel_data.loc["parallel_steps"].loc[16], "16")
+without_transpose = add_col(without_transpose, parallel_data.loc["parallel_steps"].loc[32], "32")
+
+save_with_speedup_efic(without_transpose, "parallel_steps")
+
 
