@@ -10,6 +10,8 @@
 typedef unsigned int ValueType;
 typedef unsigned int* UnsignedVector;
 
+UnsignedVector aux;
+
 void print_and_validade_order(UnsignedVector vector, long size){
     printf("%u", vector[0]);
     int less = vector[0];
@@ -27,30 +29,23 @@ void merge_vector(UnsignedVector vector, ValueType left, ValueType mid, ValueTyp
     ValueType size_L = mid - left + 1;
     ValueType size_R = size_A - size_L;
 
-    ValueType* L_aux = malloc(size_L*sizeof(ValueType));
-    ValueType* R_aux = malloc(size_R*sizeof(ValueType));
+    memcpy(aux+left, vector + left, sizeof(ValueType)*size_L);
+    memcpy(aux+(mid+1), vector + (mid + 1), sizeof(ValueType)*size_R);
 
-    memcpy(L_aux, vector + left		, sizeof(ValueType)*size_L);
-    memcpy(R_aux, vector + (mid + 1), sizeof(ValueType)*size_R);
-
-    ValueType i = 0;
-    ValueType j = 0;
+    ValueType i = left;
+    ValueType j = mid;
     ValueType k = left;
 
-
-    while(i < size_L && j < size_R) {
-        vector[k++] = (L_aux[i] < R_aux[j]) ? L_aux[i++] : R_aux[j++];
+    while(i < mid && j < right) {
+        vector[k++] = (aux[i] < aux[j]) ? aux[i++] : aux[j++];
     }
 
-    if(i < size_L) {
-        memcpy(vector + k, L_aux + i, sizeof(ValueType)*(size_L-i));
+    if(i < mid) {
+        memcpy(vector + k, aux + i, sizeof(ValueType)*(mid-i));
     }
     else {
-        memcpy(vector + k, R_aux + j, sizeof(ValueType)*(size_R-j));
+        memcpy(vector + k, aux + j, sizeof(ValueType)*(right-j));
     }
-    
-    free(L_aux);
-    free(R_aux);
 }
 
 void merge_sort_vector_internal (UnsignedVector vector, ValueType left, ValueType right) {
@@ -94,6 +89,7 @@ int main( int argc, char **argv ) {
 
     srand(seed);
     UnsignedVector vector = malloc(size*sizeof(ValueType));
+    aux = malloc(size*sizeof(ValueType));
     
     for (int i = 0; i < size; ++i) {
         vector[i] = rand();
@@ -112,6 +108,7 @@ int main( int argc, char **argv ) {
     }
 
     free(vector);
+    free(aux);
 
     return 0;
 }  /* main */
