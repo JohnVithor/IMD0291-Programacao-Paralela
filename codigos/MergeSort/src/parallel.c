@@ -10,7 +10,6 @@
 typedef unsigned int ValueType;
 typedef unsigned int* UnsignedVector;
 
-UnsignedVector aux;
 ValueType threads_number;
 
 void print_order(UnsignedVector vector, long size){
@@ -49,24 +48,32 @@ void merge_vector(UnsignedVector vector, ValueType left, ValueType mid, ValueTyp
     ValueType size_L = mid - left + 1;
     ValueType size_R = size_A - size_L;
 
-    memcpy(aux+left, vector + left, sizeof(ValueType)*size_L);
-    memcpy(aux+(mid+1), vector + (mid + 1), sizeof(ValueType)*size_R);
+    ValueType* L_aux = malloc(size_L*sizeof(ValueType));
+    ValueType* R_aux = malloc(size_R*sizeof(ValueType));
 
-    ValueType i = left;
-    ValueType j = mid;
+    memcpy(L_aux, vector + left		, sizeof(ValueType)*size_L);
+    memcpy(R_aux, vector + (mid + 1), sizeof(ValueType)*size_R);
+
+    ValueType i = 0;
+    ValueType j = 0;
     ValueType k = left;
 
-    while(i < mid && j < right) {
-        vector[k++] = (aux[i] < aux[j]) ? aux[i++] : aux[j++];
+
+    while(i < size_L && j < size_R) {
+        vector[k++] = (L_aux[i] < R_aux[j]) ? L_aux[i++] : R_aux[j++];
     }
 
-    if(i < mid) {
-        memcpy(vector + k, aux + i, sizeof(ValueType)*(mid-i));
+    if(i < size_L) {
+        memcpy(vector + k, L_aux + i, sizeof(ValueType)*(size_L-i));
     }
     else {
-        memcpy(vector + k, aux + j, sizeof(ValueType)*(right-j));
+        memcpy(vector + k, R_aux + j, sizeof(ValueType)*(size_R-j));
     }
+    
+    free(L_aux);
+    free(R_aux);
 }
+
 
 void merge_sort_vector_internal(UnsignedVector vector, ValueType left, ValueType right) {
 	if(right > left) {
@@ -78,9 +85,6 @@ void merge_sort_vector_internal(UnsignedVector vector, ValueType left, ValueType
 }
 
 void merge_vectors(UnsignedVector vector, UnsignedVector limits, ValueType size) {
-    if(size < 2){
-        return;
-    }
     if(size == 2){
         merge_vector(vector, limits[0], limits[(size/2)]-1, limits[size]-1);
         return;
@@ -169,7 +173,6 @@ int main( int argc, char **argv ) {
 
     srand(seed);
     UnsignedVector vector = malloc(size*sizeof(ValueType));
-    aux = malloc(size*sizeof(ValueType));
 
     for (int i = 0; i < size; ++i) {
         vector[i] = rand();
@@ -184,10 +187,10 @@ int main( int argc, char **argv ) {
         print_and_validade_order(vector, size);
         printf("], \"time\": %.10lf}\n", t);
     } else {
+        validade_order(vector, size);
         printf("%.10lf\n", t);
     }
 
-    free(aux);
     free(vector);
 
     return 0;
