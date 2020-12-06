@@ -86,39 +86,30 @@ void merge_sort_vector_internal(UnsignedVector vector, ValueType left, ValueType
 
 void merge_vectors(UnsignedVector vector, UnsignedVector limits, ValueType size) {
     if(size == 2){
-        merge_vector(vector, limits[0], limits[(size/2)]-1, limits[size]-1);
+        merge_vector(vector, limits[0], limits[1]-1, limits[2]-1);
         return;
     }
     if(size == 3){
-        merge_vector(vector, limits[0], limits[(size/2)]-1, limits[size-1]-1);
-        merge_vector(vector, limits[0], limits[size-1]-1, limits[size]-1);
+        merge_vector(vector, limits[0], limits[1]-1, limits[2]-1);
+        merge_vector(vector, limits[0], limits[2]-1, limits[3]-1);
         return;
     }
-    if(size % 2 == 0) {
-        #pragma omp parallel sections num_threads(threads_number) default(none) shared(vector, limits, size)
+
+    #pragma omp parallel sections num_threads(threads_number) default(none) shared(vector, limits, size)
+    {
+        #pragma omp section
         {
-            #pragma omp section
-            {
-                merge_vectors(vector, limits, (size/2) );
-            }
-            #pragma omp section
-            {
-                merge_vectors(vector, limits + (size/2), (size/2));
-            }           
+            merge_vectors(vector, limits, (size/2) );
         }
+        #pragma omp section
+        {
+            merge_vectors(vector, limits + (size/2), (size/2));
+        }
+    }
+
+    if(size % 2 == 0) {
         merge_vector(vector, limits[0], limits[(size/2)]-1, limits[size]-1);
     } else {
-        #pragma omp parallel sections num_threads(threads_number) default(none) shared(vector, limits, size)
-        {
-            #pragma omp section
-            {
-                merge_vectors(vector, limits, (size/2) );
-            }
-            #pragma omp section
-            {
-                merge_vectors(vector, limits + (size/2), (size/2));
-            }
-        }
         merge_vector(vector, limits[0], limits[(size/2)]-1, limits[size-1]-1);
         merge_vector(vector, limits[0], limits[size-1]-1, limits[size]-1);
     }

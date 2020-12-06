@@ -48,7 +48,6 @@ void merge_vector(UnsignedVector vector, ValueType left, ValueType mid, ValueTyp
     ValueType j = 0;
     ValueType k = left;
 
-
     while(i < size_L && j < size_R) {
         vector[k++] = (L_aux[i] < R_aux[j]) ? L_aux[i++] : R_aux[j++];
     }
