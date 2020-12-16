@@ -1,4 +1,4 @@
-# IMD0291-Topicos-especiais-em-internet-das-coisas-B
+# IMD0291 - Topicos especiais em internet das coisas B
 
 Repositório utilizado para manter os códigos, relatórios e arquivos gerados nas atividades da disciplina IMD0291.
 No semestre de 2020.6 essa disciplina de tópicos teve como tema a programação paralela e foi ministrada pelo Professor Kayo Gonçalves e Silva.
